@@ -1,17 +1,12 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { prepareBlocks, saveArticle, updateArticle } from "../lib/archive";
+import { today } from "../lib/dates";
 import { discardDraft, Draft, DraftFields, saveDraft } from "../lib/draft";
 import { ArticleMeta, Block, LANGUAGES } from "../lib/types";
 import { BlockEditor, newBlock } from "./BlockEditor";
 import { Preview } from "./Preview";
 
 const AUTOSAVE_DELAY_MS = 1500;
-
-function today(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
 
 function emptyFields(): DraftFields {
   return { title: "", author: "", publishedAt: "", sourceUrl: "", language: "en", readAt: today() };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArticleRow, countByDay, listArticles } from "../lib/archive";
+import { dayString, today } from "../lib/dates";
 import { LANGUAGES } from "../lib/types";
 import { ArticleRows } from "./ArticleRows";
 
@@ -15,20 +16,13 @@ export interface CalendarState {
   language: string;
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
-const dayString = (year: number, month: number, day: number) => `${year}-${pad(month)}-${pad(day)}`;
 const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
 const weekdayOf = (year: number, month: number, day: number) => new Date(year, month - 1, day).getDay();
-
-function today(): string {
-  const now = new Date();
-  return dayString(now.getFullYear(), now.getMonth() + 1, now.getDate());
-}
 
 function shiftMonth(month: string, delta: number): string {
   const [year, number] = month.split("-").map(Number);
   const date = new Date(year, number - 1 + delta, 1);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+  return dayString(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7);
 }
 
 export function initialCalendar(): CalendarState {
