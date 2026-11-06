@@ -12,7 +12,6 @@
     },
     "dialog:allow-open",
     "sql:default",
-    "sql:allow-execute",
     {
       "identifier": "http:default",
       "allow": [{ "url": "https://*:*" }, { "url": "http://*:*" }]
