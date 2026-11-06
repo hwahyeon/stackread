@@ -24,14 +24,3 @@ export interface ArticleMeta {
   read_at: string;
   blocks: Block[];
 }
-
-export const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "de", label: "Deutsch" },
-  { code: "ru", label: "Русский" },
-  { code: "ko", label: "한국어" },
-] as const;
-
-export function languageLabel(code: string): string {
-  return LANGUAGES.find((l) => l.code === code)?.label ?? code;
-}

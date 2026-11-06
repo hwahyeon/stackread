@@ -16,10 +16,11 @@ interface Props {
   onOpen: (row: ArticleRow) => void;
   onNew: () => void;
   onCalendar: () => void;
+  onSettings: () => void;
   onChangeRoot: () => void;
 }
 
-export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onNew, onCalendar, onChangeRoot }: Props) {
+export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onNew, onCalendar, onSettings, onChangeRoot }: Props) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
@@ -92,6 +93,9 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
         </button>
         <button type="button" className="secondary" onClick={onCalendar}>
           달력
+        </button>
+        <button type="button" className="secondary" onClick={onSettings}>
+          설정
         </button>
         <button type="button" onClick={onNew}>
           + 새 기사

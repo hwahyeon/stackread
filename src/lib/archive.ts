@@ -83,6 +83,15 @@ export async function countByDay(root: string, from: string, to: string, languag
   return new Map(rows.map((row) => [row.day, row.count]));
 }
 
+/** Saved articles per language code; languages without any are absent. */
+export async function countByLanguage(root: string): Promise<Map<string, number>> {
+  const { db } = await openIndex(root);
+  const rows = await db.select<{ language: string; count: number }[]>(
+    "SELECT language, COUNT(*) AS count FROM articles GROUP BY language",
+  );
+  return new Map(rows.map((row) => [row.language, row.count]));
+}
+
 export function articleDir(root: string, folderPath: string): Promise<string> {
   return join(root, ...folderPath.split("/"));
 }

@@ -1,5 +1,6 @@
 import { escapeHtml } from "./textHtml";
-import { ArticleMeta, languageLabel } from "./types";
+import { languageLabel } from "./languages";
+import { ArticleMeta } from "./types";
 
 const ARTICLE_CSS = `
 :root { color-scheme: light dark; --fg: #222; --muted: #6b6b6b; --bg: #fdfcf9; --rule: #dedbd2; }

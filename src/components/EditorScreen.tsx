@@ -2,14 +2,15 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { prepareBlocks, saveArticle, updateArticle } from "../lib/archive";
 import { today } from "../lib/dates";
 import { discardDraft, Draft, DraftFields, saveDraft } from "../lib/draft";
-import { ArticleMeta, Block, LANGUAGES } from "../lib/types";
+import { languageLabel, languages } from "../lib/languages";
+import { ArticleMeta, Block } from "../lib/types";
 import { BlockEditor, newBlock } from "./BlockEditor";
 import { Preview } from "./Preview";
 
 const AUTOSAVE_DELAY_MS = 1500;
 
 function emptyFields(): DraftFields {
-  return { title: "", author: "", publishedAt: "", sourceUrl: "", language: "en", readAt: today() };
+  return { title: "", author: "", publishedAt: "", sourceUrl: "", language: languages()[0].code, readAt: today() };
 }
 
 function toMeta(fields: DraftFields, blocks: Block[]): ArticleMeta {
@@ -115,11 +116,15 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, onLeave }: Props
         <label>
           언어
           <select value={fields.language} onChange={set("language")}>
-            {LANGUAGES.map((l) => (
+            {languages().map((l) => (
               <option key={l.code} value={l.code}>
                 {l.label}
               </option>
             ))}
+            {/* A draft may hold a language removed from the list after it was written. */}
+            {!languages().some((l) => l.code === fields.language) && (
+              <option value={fields.language}>{languageLabel(fields.language)}</option>
+            )}
           </select>
         </label>
         <label>

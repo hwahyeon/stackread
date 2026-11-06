@@ -1,5 +1,5 @@
 import { ArticleRow } from "../lib/archive";
-import { languageLabel } from "../lib/types";
+import { languageLabel } from "../lib/languages";
 
 interface Props {
   rows: ArticleRow[];

@@ -3,14 +3,17 @@ import { CalendarScreen, CalendarState, initialCalendar } from "./components/Cal
 import { DetailScreen } from "./components/DetailScreen";
 import { EditorScreen } from "./components/EditorScreen";
 import { EMPTY_FILTER, ListScreen } from "./components/ListScreen";
+import { SettingsScreen } from "./components/SettingsScreen";
 import { ArticleFilter, ArticleRow, articleDir, readArticleMeta } from "./lib/archive";
 import { createEditDraft, discardDraft, Draft, loadDraft } from "./lib/draft";
+import { loadLanguages } from "./lib/languages";
 import { chooseRoot, loadRoot } from "./lib/settings";
 import "./App.css";
 
 type View =
   | { name: "list" }
   | { name: "calendar" }
+  | { name: "settings" }
   | { name: "editor"; key: string; draft: Draft | null; freshEdit: boolean; back: View }
   | { name: "detail"; id: number; folderPath: string; back: View };
 
@@ -34,12 +37,22 @@ interface DraftPrompt {
 
 export default function App() {
   const [root, setRoot] = useState<string | null | undefined>(undefined);
+  // The root whose language list is loaded; screens wait for it so they never show another root's list.
+  const [languagesRoot, setLanguagesRoot] = useState<string | null>(null);
   const [view, setView] = useState<View>(LIST);
   const [prompt, setPrompt] = useState<DraftPrompt | null>(null);
   const [filter, setFilter] = useState<ArticleFilter>(EMPTY_FILTER);
   const [calendar, setCalendar] = useState<CalendarState>(initialCalendar);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  /** Drops the language filters, or only those set to `code`, once that language may be gone. */
+  const clearLanguageFilters = (code?: string) => {
+    const cleared = <T extends { language: string }>(state: T): T =>
+      code === undefined || state.language === code ? { ...state, language: "" } : state;
+    setFilter(cleared);
+    setCalendar(cleared);
+  };
 
   useEffect(() => {
     loadRoot()
@@ -54,9 +67,17 @@ export default function App() {
     if (!root) return;
     setView(LIST);
     setPrompt(null);
+    clearLanguageFilters();
+    let current = true;
+    loadLanguages(root)
+      .catch((e) => setError(`언어 목록을 읽지 못해 기본 목록을 사용합니다: ${e}`))
+      .finally(() => current && setLanguagesRoot(root));
     loadDraft(root)
       .then((draft) => draft && setPrompt({ draft, afterDiscard: () => setView(LIST) }))
       .catch((e) => setError(`임시 저장본을 읽지 못했습니다: ${e}`));
+    return () => {
+      current = false;
+    };
   }, [root]);
 
   const pickRoot = async () => {
@@ -126,6 +147,8 @@ export default function App() {
     );
   }
 
+  if (root !== languagesRoot) return null;
+
   if (prompt) {
     return (
       <main className="setup">
@@ -191,6 +214,10 @@ export default function App() {
     );
   }
 
+  if (view.name === "settings") {
+    return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} onBack={() => setView(LIST)} />;
+  }
+
   if (view.name === "calendar") {
     return (
       <CalendarScreen
@@ -216,6 +243,11 @@ export default function App() {
         setNotice(null);
         setError(null);
         setView({ name: "calendar" });
+      }}
+      onSettings={() => {
+        setNotice(null);
+        setError(null);
+        setView({ name: "settings" });
       }}
       onChangeRoot={pickRoot}
     />

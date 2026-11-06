@@ -1,4 +1,4 @@
-import { LANGUAGES } from "../lib/types";
+import { languages } from "../lib/languages";
 
 interface Props {
   /** A language code, or "" for all languages. */
@@ -10,7 +10,7 @@ export function LanguageFilter({ value, onChange }: Props) {
   return (
     <select aria-label="언어" className="language-filter" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">전체 언어</option>
-      {LANGUAGES.map((l) => (
+      {languages().map((l) => (
         <option key={l.code} value={l.code}>
           {l.label}
         </option>

@@ -344,6 +344,43 @@ button.secondary {
   font-size: 0.9rem;
 }
 
+.settings h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.settings .message { margin-top: 0.75rem; }
+
+.language-list {
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.language-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem 6rem auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.language-name { overflow-wrap: anywhere; }
+
+.language-code, .language-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.language-list button { padding: 0.15rem 0.75rem; }
+
+.language-form {
+  grid-template-columns: minmax(0, 1fr) 10rem auto;
+  align-items: end;
+}
+
 .calendar section { margin-bottom: 1.75rem; }
 .language-filter { width: auto; }
 
