@@ -345,7 +345,7 @@ button.secondary {
 }
 
 .calendar section { margin-bottom: 1.75rem; }
-.calendar-language { width: auto; }
+.language-filter { width: auto; }
 
 .calendar-nav {
   display: flex;

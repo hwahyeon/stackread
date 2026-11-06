@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArticleFilter, ArticleRow, countTrash, emptyTrash, listArticles, rebuildIndex } from "../lib/archive";
-import { LANGUAGES } from "../lib/types";
 import { ArticleRows } from "./ArticleRows";
+import { LanguageFilter } from "./LanguageFilter";
 
 const SEARCH_DELAY_MS = 250;
 
@@ -107,14 +107,7 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
           value={filter.query}
           onChange={set("query")}
         />
-        <select aria-label="언어" value={filter.language} onChange={set("language")}>
-          <option value="">전체 언어</option>
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
-            </option>
-          ))}
-        </select>
+        <LanguageFilter value={filter.language} onChange={(language) => onFilterChange({ ...filter, language })} />
         <input type="date" aria-label="읽은 날짜 시작" value={filter.from} onChange={set("from")} />
         <span className="range-mark">~</span>
         <input type="date" aria-label="읽은 날짜 끝" value={filter.to} onChange={set("to")} />

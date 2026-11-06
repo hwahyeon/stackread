@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ArticleRow, countByDay, listArticles } from "../lib/archive";
 import { dayString, today } from "../lib/dates";
-import { LANGUAGES } from "../lib/types";
 import { ArticleRows } from "./ArticleRows";
+import { LanguageFilter } from "./LanguageFilter";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 // Rows of the yearly graph that carry a weekday label: too small to label all seven.
@@ -181,19 +181,7 @@ export function CalendarScreen({ root, state, onChange, onOpen, onBack }: Props)
     <main className="list calendar">
       <header>
         <h1>달력</h1>
-        <select
-          aria-label="언어"
-          className="calendar-language"
-          value={language}
-          onChange={(e) => onChange({ ...state, language: e.target.value })}
-        >
-          <option value="">전체 언어</option>
-          {LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label}
-            </option>
-          ))}
-        </select>
+        <LanguageFilter value={language} onChange={(value) => onChange({ ...state, language: value })} />
         <button type="button" className="secondary" onClick={onBack}>
           목록
         </button>
