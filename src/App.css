@@ -75,6 +75,8 @@ button.link {
   padding: 0 1rem;
 }
 
+.error-actions { margin-top: 1rem; }
+
 .editor {
   max-width: 44rem;
   margin: 0 auto;
