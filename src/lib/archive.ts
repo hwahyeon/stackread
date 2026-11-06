@@ -70,6 +70,19 @@ export async function listArticles(root: string, filter: ArticleFilter): Promise
   );
 }
 
+/** Articles read per day ("YYYY-MM-DD") in an inclusive range; days without any are absent. */
+export async function countByDay(root: string, from: string, to: string, language: string): Promise<Map<string, number>> {
+  const { db } = await openIndex(root);
+  const values = language ? [from, to, language] : [from, to];
+  const rows = await db.select<{ day: string; count: number }[]>(
+    `SELECT read_at AS day, COUNT(*) AS count FROM articles
+     WHERE read_at >= $1 AND read_at <= $2 ${language ? "AND language = $3" : ""}
+     GROUP BY read_at`,
+    values,
+  );
+  return new Map(rows.map((row) => [row.day, row.count]));
+}
+
 export function articleDir(root: string, folderPath: string): Promise<string> {
   return join(root, ...folderPath.split("/"));
 }

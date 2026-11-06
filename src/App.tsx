@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
+import { CalendarScreen, CalendarState, initialCalendar } from "./components/CalendarScreen";
 import { DetailScreen } from "./components/DetailScreen";
 import { EditorScreen } from "./components/EditorScreen";
 import { EMPTY_FILTER, ListScreen } from "./components/ListScreen";
-import { ArticleFilter, articleDir, readArticleMeta } from "./lib/archive";
+import { ArticleFilter, ArticleRow, articleDir, readArticleMeta } from "./lib/archive";
 import { createEditDraft, discardDraft, Draft, loadDraft } from "./lib/draft";
 import { chooseRoot, loadRoot } from "./lib/settings";
 import "./App.css";
 
 type View =
   | { name: "list" }
+  | { name: "calendar" }
   | { name: "editor"; key: string; draft: Draft | null; freshEdit: boolean; back: View }
-  | { name: "detail"; id: number; folderPath: string };
+  | { name: "detail"; id: number; folderPath: string; back: View };
 
 const LIST: View = { name: "list" };
 
@@ -20,7 +22,7 @@ function editorView(draft: Draft | null, freshEdit = false, back: View = LIST): 
 
 /** Where a recovered draft belongs: an edit goes back to its article, a new one to the list. */
 function viewForDraft(draft: Draft): View {
-  const back: View = draft.editing ? { name: "detail", ...draft.editing } : LIST;
+  const back: View = draft.editing ? { name: "detail", ...draft.editing, back: LIST } : LIST;
   return editorView(draft, false, back);
 }
 
@@ -35,6 +37,7 @@ export default function App() {
   const [view, setView] = useState<View>(LIST);
   const [prompt, setPrompt] = useState<DraftPrompt | null>(null);
   const [filter, setFilter] = useState<ArticleFilter>(EMPTY_FILTER);
+  const [calendar, setCalendar] = useState<CalendarState>(initialCalendar);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,12 +86,19 @@ export default function App() {
     }
   };
 
-  const beginEdit = async (id: number, folderPath: string) => {
+  const beginEdit = async (detail: Extract<View, { name: "detail" }>) => {
     if (!root) return;
+    const { id, folderPath } = detail;
     const meta = await readArticleMeta(root, folderPath);
     const dir = await articleDir(root, folderPath);
     const draft = await createEditDraft(root, dir, meta, { id, folderPath });
-    setView(editorView(draft, true, { name: "detail", id, folderPath }));
+    setView(editorView(draft, true, detail));
+  };
+
+  const openArticle = (row: ArticleRow, back: View) => {
+    setNotice(null);
+    setError(null);
+    setView({ name: "detail", id: row.id, folderPath: row.folder_path, back });
   };
 
   const discardPrompted = async () => {
@@ -149,7 +159,8 @@ export default function App() {
         freshEdit={view.freshEdit}
         onSaved={(folder) => {
           if (editing) {
-            setView({ name: "detail", id: editing.id, folderPath: folder });
+            const back = view.back.name === "detail" ? view.back.back : LIST;
+            setView({ name: "detail", id: editing.id, folderPath: folder, back });
           } else {
             setNotice(`저장했습니다: ${folder}`);
             setView(LIST);
@@ -168,13 +179,26 @@ export default function App() {
         root={root}
         id={id}
         folderPath={folderPath}
-        onBack={() => setView(LIST)}
+        backLabel={view.back.name === "calendar" ? "달력" : "목록"}
+        onBack={() => setView(view.back)}
         actionError={error}
-        onEdit={() => unlessDraftWaits(() => beginEdit(id, folderPath))}
+        onEdit={() => unlessDraftWaits(() => beginEdit(view))}
         onDeleted={() => {
           setNotice("삭제했습니다. 휴지통 폴더에서 되살릴 수 있습니다.");
           setView(LIST);
         }}
+      />
+    );
+  }
+
+  if (view.name === "calendar") {
+    return (
+      <CalendarScreen
+        root={root}
+        state={calendar}
+        onChange={setCalendar}
+        onOpen={(row) => openArticle(row, view)}
+        onBack={() => setView(LIST)}
       />
     );
   }
@@ -186,12 +210,13 @@ export default function App() {
       notice={notice}
       error={error}
       onFilterChange={setFilter}
-      onOpen={(row) => {
+      onOpen={(row) => openArticle(row, LIST)}
+      onNew={() => unlessDraftWaits(() => setView(editorView(null)))}
+      onCalendar={() => {
         setNotice(null);
         setError(null);
-        setView({ name: "detail", id: row.id, folderPath: row.folder_path });
+        setView({ name: "calendar" });
       }}
-      onNew={() => unlessDraftWaits(() => setView(editorView(null)))}
       onChangeRoot={pickRoot}
     />
   );

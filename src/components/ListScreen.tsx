@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArticleFilter, ArticleRow, countTrash, emptyTrash, listArticles, rebuildIndex } from "../lib/archive";
-import { languageLabel, LANGUAGES } from "../lib/types";
+import { LANGUAGES } from "../lib/types";
+import { ArticleRows } from "./ArticleRows";
 
 const SEARCH_DELAY_MS = 250;
 
@@ -14,10 +15,11 @@ interface Props {
   onFilterChange: (filter: ArticleFilter) => void;
   onOpen: (row: ArticleRow) => void;
   onNew: () => void;
+  onCalendar: () => void;
   onChangeRoot: () => void;
 }
 
-export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onNew, onChangeRoot }: Props) {
+export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onNew, onCalendar, onChangeRoot }: Props) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
@@ -88,6 +90,9 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
         <button type="button" className="link" onClick={onChangeRoot} title={root}>
           저장 폴더: {root}
         </button>
+        <button type="button" className="secondary" onClick={onCalendar}>
+          달력
+        </button>
         <button type="button" onClick={onNew}>
           + 새 기사
         </button>
@@ -129,18 +134,7 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
       {rows && rows.length > 0 && (
         <>
           <p className="count">{rows.length}개</p>
-          <ul className="rows">
-            {rows.map((row) => (
-              <li key={row.id}>
-                <button type="button" className="row" onClick={() => onOpen(row)}>
-                  <span className="row-title">{row.title}</span>
-                  <span className="row-author">{row.author}</span>
-                  <span className="row-language">{languageLabel(row.language)}</span>
-                  <span className="row-date">{row.read_at}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <ArticleRows rows={rows} onOpen={onOpen} />
         </>
       )}
       <p className="maintenance">
