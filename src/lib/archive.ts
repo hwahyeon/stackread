@@ -190,9 +190,31 @@ async function pruneDateFolders(root: string, folderPath: string): Promise<void>
 /** Writes the files first: they are the record, and the index can be rebuilt from them. */
 export async function saveArticle(root: string, input: ArticleMeta): Promise<string> {
   const folderPath = await freeFolder(root, dateFolder(input.read_at), folderNameFromTitle(input.title));
-  const meta = await writeArticleFiles(root, await articleDir(root, folderPath), input);
-  const { url } = await openIndex(root);
-  await invoke("index_insert", { db: url, entry: indexEntry(meta, folderPath) });
+  const dir = await articleDir(root, folderPath);
+  // A failed save leaves nothing behind, so trying again reuses the same folder name.
+  const discard = async () => {
+    try {
+      if (await exists(dir)) await remove(dir, { recursive: true });
+      await pruneDateFolders(root, folderPath);
+    } catch {
+      // The original error matters more than a failed cleanup.
+    }
+  };
+
+  let meta: ArticleMeta;
+  try {
+    meta = await writeArticleFiles(root, dir, input);
+  } catch (e) {
+    await discard();
+    throw e;
+  }
+  try {
+    const { url } = await openIndex(root);
+    await invoke("index_insert", { db: url, entry: indexEntry(meta, folderPath) });
+  } catch (e) {
+    await discard();
+    throw new Error(`색인에 추가하지 못했습니다 (${e}). 색인을 다시 만든 뒤 저장해 보세요`);
+  }
   await refreshIndexHtml(root);
   return folderPath;
 }
