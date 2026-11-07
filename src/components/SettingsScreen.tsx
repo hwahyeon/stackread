@@ -1,6 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { countByLanguage } from "../lib/archive";
 import { addLanguage, languages, removeLanguage } from "../lib/languages";
+import { MaintenanceSection } from "./MaintenanceSection";
 import { applyTheme, currentTheme, saveTheme, Theme } from "../lib/settings";
 
 const ICON = {
@@ -73,12 +74,13 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [countsKey, setCountsKey] = useState(0);
 
   useEffect(() => {
     countByLanguage(root)
       .then(setCounts)
       .catch((e) => setError(`기사 수를 읽지 못해 언어를 삭제할 수 없습니다: ${e}`));
-  }, [root]);
+  }, [root, countsKey]);
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
@@ -177,6 +179,8 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         이름은 화면에 표시되고, 코드는 기사에 언어 정보로 저장됩니다. 저장한 기사가 있는 언어는 삭제할 수 없습니다.
       </p>
       {error && <p className="message error">{error}</p>}
+
+      <MaintenanceSection root={root} onRebuilt={() => setCountsKey((k) => k + 1)} />
     </main>
   );
 }
