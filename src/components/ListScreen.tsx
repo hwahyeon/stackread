@@ -14,10 +14,9 @@ interface Props {
   error: string | null;
   onFilterChange: (filter: ArticleFilter) => void;
   onOpen: (row: ArticleRow) => void;
-  onChangeRoot: () => void;
 }
 
-export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onChangeRoot }: Props) {
+export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen }: Props) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
@@ -85,9 +84,6 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
     <main className="list">
       <header>
         <h1>기사 목록</h1>
-        <button type="button" className="link" onClick={onChangeRoot} title={root}>
-          저장 폴더: {root}
-        </button>
       </header>
 
       <div className="filters">

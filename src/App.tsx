@@ -312,7 +312,7 @@ export default function App() {
     }
 
     if (view.name === "settings") {
-      return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} />;
+      return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} onChangeRoot={pickRoot} rootError={error} />;
     }
 
     if (view.name === "calendar") {
@@ -327,7 +327,6 @@ export default function App() {
         error={error}
         onFilterChange={setFilter}
         onOpen={openArticle}
-        onChangeRoot={pickRoot}
       />
     );
   }

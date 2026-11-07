@@ -5,9 +5,11 @@ import { addLanguage, languages, removeLanguage } from "../lib/languages";
 interface Props {
   root: string;
   onLanguageRemoved: (code: string) => void;
+  onChangeRoot: () => void;
+  rootError: string | null;
 }
 
-export function SettingsScreen({ root, onLanguageRemoved }: Props) {
+export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootError }: Props) {
   const [list, setList] = useState(languages);
   const [counts, setCounts] = useState<Map<string, number> | null>(null);
   const [code, setCode] = useState("");
@@ -49,6 +51,15 @@ export function SettingsScreen({ root, onLanguageRemoved }: Props) {
       <header>
         <h1>설정</h1>
       </header>
+
+      <h2>저장 폴더</h2>
+      <div className="root-row">
+        <span className="root-path">{root}</span>
+        <button type="button" className="secondary" onClick={onChangeRoot}>
+          바꾸기
+        </button>
+      </div>
+      {rootError && <p className="message error">{rootError}</p>}
 
       <h2>언어</h2>
       <ul className="language-list">

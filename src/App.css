@@ -418,6 +418,24 @@ button.secondary {
 
 .settings .message { margin-top: 0.75rem; }
 
+.root-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.root-path {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.root-row button { white-space: nowrap; }
+
 .language-list {
   margin: 0 0 1.25rem;
   padding: 0;
