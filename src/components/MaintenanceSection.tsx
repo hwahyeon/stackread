@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { countTrash, emptyTrash, listTrash, rebuildIndex, TrashItem } from "../lib/archive";
+import { countTrash, emptyTrash, listTrash, rebuildIndex, restoreArticle, TrashItem } from "../lib/archive";
 import { languageLabel } from "../lib/languages";
 
 interface Props {
   root: string;
-  /** The index was rebuilt, so counts read from it may have changed. */
-  onRebuilt: () => void;
+  /** The index changed (rebuilt, or an article restored), so counts read from it may be stale. */
+  onIndexChanged: () => void;
 }
 
-export function MaintenanceSection({ root, onRebuilt }: Props) {
+export function MaintenanceSection({ root, onIndexChanged }: Props) {
   const [trashCount, setTrashCount] = useState<number | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function MaintenanceSection({ root, onRebuilt }: Props) {
     setNote(null);
     try {
       const { count, skipped } = await rebuildIndex(root);
-      onRebuilt();
+      onIndexChanged();
       setNote(
         `기사 ${count}개로 색인을 다시 만들었습니다.` +
           (skipped.length ? ` 읽지 못한 폴더 ${skipped.length}개: ${skipped.join(", ")}` : ""),
@@ -52,6 +52,21 @@ export function MaintenanceSection({ root, onRebuilt }: Props) {
       setTrashCount(items.length);
     } catch (e) {
       setError(`휴지통을 읽지 못했습니다: ${e}`);
+    }
+  };
+
+  const restore = async (item: TrashItem) => {
+    setError(null);
+    setNote(null);
+    try {
+      const folderPath = await restoreArticle(root, item.folder);
+      const rest = (trashItems ?? []).filter((i) => i.folder !== item.folder);
+      setTrashItems(rest);
+      setTrashCount(rest.length);
+      setNote(`되살렸습니다: ${folderPath}`);
+      onIndexChanged();
+    } catch (e) {
+      setError(`되살리지 못했습니다: ${e}`);
     }
   };
 
@@ -109,6 +124,15 @@ export function MaintenanceSection({ root, onRebuilt }: Props) {
                     <span className="trash-title">{item.title || `(읽지 못한 폴더) ${item.folder}`}</span>
                     <span className="manage-help">{item.language && languageLabel(item.language)}</span>
                     <span className="manage-help">{item.read_at}</span>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!item.title}
+                      title={item.title ? undefined : "meta.json을 읽지 못해 되살릴 수 없습니다"}
+                      onClick={() => restore(item)}
+                    >
+                      되살리기
+                    </button>
                   </li>
                 ))}
               </ul>

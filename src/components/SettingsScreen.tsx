@@ -140,7 +140,7 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
       </div>
       {rootError && <p className="message error">{rootError}</p>}
 
-      <MaintenanceSection root={root} onRebuilt={() => setCountsKey((k) => k + 1)} />
+      <MaintenanceSection root={root} onIndexChanged={() => setCountsKey((k) => k + 1)} />
 
       <h2>기사 언어</h2>
       <ul className="language-list">

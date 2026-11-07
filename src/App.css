@@ -641,13 +641,15 @@ button.secondary {
 
 .trash-items li {
   display: grid;
-  grid-template-columns: 1fr 6rem 6rem;
+  grid-template-columns: 1fr 6rem 6rem auto;
+  align-items: center;
   gap: 1rem;
   padding: 0.35rem 0;
   border-bottom: 1px dashed var(--line);
 }
 
 .trash-items li:last-child { border-bottom: 0; }
+.trash-items button { padding: 0.2rem 0.75rem; font-size: 0.85rem; }
 
 .trash-title {
   min-width: 0;

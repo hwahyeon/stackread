@@ -425,6 +425,34 @@ export async function listTrash(root: string): Promise<TrashItem[]> {
   return items.sort((a, b) => b.folder.localeCompare(a.folder));
 }
 
+/**
+ * Moves a trashed article back to the date folder of its read date and adds it to the index.
+ * The folder name is made from the title again, so it may differ from the one it had.
+ */
+export async function restoreArticle(root: string, trashFolder: string): Promise<string> {
+  const from = await join(root, TRASH_FOLDER, trashFolder);
+  let meta: ArticleMeta;
+  try {
+    meta = checkedMeta(JSON.parse(await readTextFile(await join(from, "meta.json"))));
+  } catch (e) {
+    throw new Error(`meta.json을 읽지 못했습니다 (${e instanceof Error ? e.message : e})`);
+  }
+  const folderPath = await freeFolder(root, dateFolder(meta.read_at), folderNameFromTitle(meta.title));
+  const dir = await articleDir(root, folderPath);
+  await mkdir(await articleDir(root, dateFolder(meta.read_at)), { recursive: true });
+  await rename(from, dir);
+  try {
+    const { url } = await openIndex(root);
+    await invoke("index_insert", { db: url, entry: indexEntry(meta, folderPath) });
+  } catch (e) {
+    await rename(dir, from);
+    await pruneDateFolders(root, folderPath).catch(() => {});
+    throw e;
+  }
+  await tidyUp(() => refreshIndexHtml(root));
+  return folderPath;
+}
+
 export async function emptyTrash(root: string): Promise<void> {
   const trash = await join(root, TRASH_FOLDER);
   if (await exists(trash)) await remove(trash, { recursive: true });
