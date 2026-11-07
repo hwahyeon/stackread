@@ -267,6 +267,9 @@ button.secondary {
 .text-block p[data-indent="1"] { margin-left: 2em; }
 .text-block p[data-indent="2"] { margin-left: 4em; }
 .text-block p[data-indent="3"] { margin-left: 6em; }
+.text-block ul, .text-block ol { margin: 0 0 0.7em; padding-left: 1.6em; }
+.text-block li > p { margin: 0 0 0.2em; }
+.text-block li > ul, .text-block li > ol { margin-bottom: 0.2em; }
 
 .text-block p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

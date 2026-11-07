@@ -3,6 +3,7 @@ import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import HardBreak from "@tiptap/extension-hard-break";
 import Italic from "@tiptap/extension-italic";
+import { BulletList, ListItem, ListKeymap, OrderedList } from "@tiptap/extension-list";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import { Placeholder, UndoRedo } from "@tiptap/extensions";
@@ -15,6 +16,12 @@ function clampIndent(value: number): number {
 }
 
 function changeIndent(editor: Editor, delta: number): boolean {
+  // In a list, Tab moves the item a level in or out instead. Always handled, so focus stays here.
+  if (editor.isActive("listItem")) {
+    if (delta > 0) editor.commands.sinkListItem("listItem");
+    else editor.commands.liftListItem("listItem");
+    return true;
+  }
   const { state, view } = editor;
   const { from, to } = state.selection;
   const tr = state.tr;
@@ -54,6 +61,11 @@ const EXTENSIONS = [
   Bold,
   Italic,
   HardBreak,
+  // "- " or "* " at the start of a line begins a bulleted list, "1. " a numbered one.
+  BulletList,
+  OrderedList,
+  ListItem,
+  ListKeymap,
   UndoRedo,
   Placeholder.configure({ placeholder: "복사한 글을 붙여넣으세요" }),
 ];

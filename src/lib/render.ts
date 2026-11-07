@@ -18,6 +18,9 @@ p { margin: 0 0 1.1em; }
 p[data-indent="1"] { margin-left: 2em; }
 p[data-indent="2"] { margin-left: 4em; }
 p[data-indent="3"] { margin-left: 6em; }
+ul, ol { margin: 0 0 1.1em; padding-left: 1.6em; }
+li > p { margin: 0 0 .3em; }
+li > ul, li > ol { margin-bottom: .3em; }
 figure { margin: 2em 0; }
 img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 figcaption { color: var(--muted); font-size: .85rem; line-height: 1.5; margin-top: .6em; text-align: center; }
