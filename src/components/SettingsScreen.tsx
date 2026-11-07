@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { countByLanguage } from "../lib/archive";
 import { addLanguage, languages, removeLanguage } from "../lib/languages";
+import { PAGE_SIZES } from "../lib/settings";
 import { MaintenanceSection } from "./MaintenanceSection";
 
 interface Props {
@@ -8,14 +9,17 @@ interface Props {
   onLanguageRemoved: (code: string) => void;
   onChangeRoot: () => void;
   rootError: string | null;
+  pageSize: number;
+  onPageSizeChange: (size: number) => Promise<void>;
 }
 
-export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootError }: Props) {
+export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootError, pageSize, onPageSizeChange }: Props) {
   const [list, setList] = useState(languages);
   const [counts, setCounts] = useState<Map<string, number> | null>(null);
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pageSizeError, setPageSizeError] = useState<string | null>(null);
   const [countsKey, setCountsKey] = useState(0);
 
   useEffect(() => {
@@ -62,6 +66,28 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         </button>
       </div>
       {rootError && <p className="message error">{rootError}</p>}
+
+      <h2>목록</h2>
+      <div className="root-row">
+        <span className="root-path">한 페이지에 보여 줄 기사 수</span>
+        <select
+          aria-label="한 페이지에 보여 줄 기사 수"
+          className="page-size"
+          value={pageSize}
+          onChange={(e) =>
+            onPageSizeChange(Number(e.target.value))
+              .then(() => setPageSizeError(null))
+              .catch((err) => setPageSizeError(`설정을 저장하지 못했습니다. 다음에 켤 때는 이전 값으로 돌아갑니다: ${err}`))
+          }
+        >
+          {PAGE_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size}개
+            </option>
+          ))}
+        </select>
+      </div>
+      {pageSizeError && <p className="message error">{pageSizeError}</p>}
 
       <MaintenanceSection root={root} onIndexChanged={() => setCountsKey((k) => k + 1)} />
 

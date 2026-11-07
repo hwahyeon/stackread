@@ -465,6 +465,28 @@ button.secondary {
 }
 
 .root-row button { white-space: nowrap; }
+.root-row select.page-size { width: auto; }
+
+.pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+}
+
+.pager button {
+  min-width: 2.25rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.pager button.current {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.pager-gap { padding: 0 0.25rem; color: var(--muted); }
 
 .language-list {
   margin: 0 0 1.25rem;

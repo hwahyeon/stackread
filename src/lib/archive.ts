@@ -43,8 +43,8 @@ export interface ArticleFilter {
 // Trigram matching needs at least 3 characters; shorter terms fall back to LIKE.
 const TRIGRAM_MIN_LENGTH = 3;
 
-export async function listArticles(root: string, filter: ArticleFilter): Promise<ArticleRow[]> {
-  const { db } = await openIndex(root);
+/** The WHERE clause and its values for a filter. */
+function filterWhere(filter: ArticleFilter): { clause: string; values: string[] } {
   const where: string[] = [];
   const values: string[] = [];
   const bind = (value: string) => `$${values.push(value)}`;
@@ -61,13 +61,36 @@ export async function listArticles(root: string, filter: ArticleFilter): Promise
       where.push(`id IN (SELECT rowid FROM articles_fts WHERE title LIKE ${like} ESCAPE '\\' OR body LIKE ${like} ESCAPE '\\')`);
     }
   }
+  return { clause: where.length ? `WHERE ${where.join(" AND ")}` : "", values };
+}
+
+function listQuery(filter: ArticleFilter, clause: string): string {
   const direction = filter.order === "oldest" ? "ASC" : "DESC";
-  return db.select<ArticleRow[]>(
-    `SELECT id, title, COALESCE(author, '') AS author, language, read_at, folder_path FROM articles
-     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY read_at ${direction}, id ${direction}`,
-    values,
-  );
+  return `SELECT id, title, COALESCE(author, '') AS author, language, read_at, folder_path FROM articles
+     ${clause}
+     ORDER BY read_at ${direction}, id ${direction}`;
+}
+
+export async function listArticles(root: string, filter: ArticleFilter): Promise<ArticleRow[]> {
+  const { db } = await openIndex(root);
+  const { clause, values } = filterWhere(filter);
+  return db.select<ArticleRow[]>(listQuery(filter, clause), values);
+}
+
+export interface ArticlePage {
+  rows: ArticleRow[];
+  /** Articles matching the filter on all pages. */
+  total: number;
+}
+
+/** One page (counted from 1) of the filtered list. */
+export async function listArticlePage(root: string, filter: ArticleFilter, page: number, size: number): Promise<ArticlePage> {
+  const { db } = await openIndex(root);
+  const { clause, values } = filterWhere(filter);
+  const [{ total }] = await db.select<{ total: number }[]>(`SELECT COUNT(*) AS total FROM articles ${clause}`, values);
+  const offset = (Math.max(page, 1) - 1) * size;
+  const rows = await db.select<ArticleRow[]>(`${listQuery(filter, clause)} LIMIT ${size} OFFSET ${offset}`, values);
+  return { rows, total };
 }
 
 /** Articles read per day ("YYYY-MM-DD") in an inclusive range; days without any are absent. */

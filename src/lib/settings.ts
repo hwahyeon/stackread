@@ -7,7 +7,11 @@ export type Theme = "system" | "light" | "dark";
 interface Settings {
   root?: string;
   theme?: Theme;
+  pageSize?: number;
 }
+
+export const PAGE_SIZES = [10, 20, 30, 50, 100];
+export const DEFAULT_PAGE_SIZE = 30;
 
 async function settingsPath(): Promise<string> {
   return join(await appConfigDir(), "settings.json");
@@ -44,6 +48,16 @@ export async function saveTheme(theme: Theme): Promise<void> {
 export function applyTheme(theme: Theme): void {
   if (theme === "system") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
+}
+
+/** Articles per page in the list. */
+export async function loadPageSize(): Promise<number> {
+  const { pageSize } = await readSettings();
+  return pageSize !== undefined && PAGE_SIZES.includes(pageSize) ? pageSize : DEFAULT_PAGE_SIZE;
+}
+
+export async function savePageSize(pageSize: number): Promise<void> {
+  await writeSettings({ pageSize });
 }
 
 export function currentTheme(): Theme {

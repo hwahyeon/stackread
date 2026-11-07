@@ -8,7 +8,7 @@ import { SettingsScreen } from "./components/SettingsScreen";
 import { ArticleFilter, ArticleRow, articleDir, readArticleMeta } from "./lib/archive";
 import { createEditDraft, discardDraft, Draft, loadDraft } from "./lib/draft";
 import { loadLanguages } from "./lib/languages";
-import { applyTheme, chooseRoot, loadRoot, loadTheme } from "./lib/settings";
+import { applyTheme, chooseRoot, DEFAULT_PAGE_SIZE, loadPageSize, loadRoot, loadTheme, savePageSize } from "./lib/settings";
 import "./App.css";
 
 type View =
@@ -81,6 +81,8 @@ export default function App() {
   const editorLeave = useRef<(() => Promise<boolean>) | null>(null);
   const [prompt, setPrompt] = useState<DraftPrompt | null>(null);
   const [filter, setFilter] = useState<ArticleFilter>(EMPTY_FILTER);
+  const [listPage, setListPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [calendar, setCalendar] = useState<CalendarState>(initialCalendar);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function App() {
     const cleared = <T extends { language: string }>(state: T): T =>
       code === undefined || state.language === code ? { ...state, language: "" } : state;
     setFilter(cleared);
+    setListPage(1);
     setCalendar(cleared);
   };
 
@@ -97,6 +100,9 @@ export default function App() {
     loadTheme()
       .then(applyTheme)
       .catch((e) => console.warn("theme setting unreadable", e));
+    loadPageSize()
+      .then(setPageSize)
+      .catch((e) => console.warn("page size setting unreadable", e));
     loadRoot()
       .then(setRoot)
       .catch((e) => {
@@ -318,7 +324,15 @@ export default function App() {
     }
 
     if (view.name === "settings") {
-      return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} onChangeRoot={pickRoot} rootError={error} />;
+      return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} onChangeRoot={pickRoot}
+          rootError={error}
+          pageSize={pageSize}
+          onPageSizeChange={async (size) => {
+            setPageSize(size);
+            setListPage(1);
+            await savePageSize(size);
+          }}
+        />;
     }
 
     if (view.name === "calendar") {
@@ -331,7 +345,13 @@ export default function App() {
         filter={filter}
         notice={notice}
         error={error}
-        onFilterChange={setFilter}
+        onFilterChange={(next) => {
+          setFilter(next);
+          setListPage(1);
+        }}
+        page={listPage}
+        pageSize={pageSize}
+        onPageChange={setListPage}
         onOpen={openArticle}
         onEdit={editArticle}
       />
