@@ -177,6 +177,21 @@ async function refreshIndexHtml(root: string): Promise<void> {
   await writeTextFile(await join(root, "index.html"), renderIndexHtml(rows));
 }
 
+/**
+ * Runs the tidy-up steps that follow a committed change. A failure there costs only disk
+ * space or a stale index.html, which the next save rewrites, so it must not be reported as a
+ * failed save: the user would retry a change that already happened.
+ */
+async function tidyUp(...steps: (() => Promise<unknown>)[]): Promise<void> {
+  for (const step of steps) {
+    try {
+      await step();
+    } catch (e) {
+      console.warn("tidy-up step failed", e);
+    }
+  }
+}
+
 /** Removes the YYYY/MM/DD folders an article left behind, stopping at the first one still in use. */
 async function pruneDateFolders(root: string, folderPath: string): Promise<void> {
   const parts = folderPath.split("/").slice(0, -1);
@@ -215,7 +230,7 @@ export async function saveArticle(root: string, input: ArticleMeta): Promise<str
     await discard();
     throw new Error(`색인에 추가하지 못했습니다 (${e}). 색인을 다시 만든 뒤 저장해 보세요`);
   }
-  await refreshIndexHtml(root);
+  await tidyUp(() => refreshIndexHtml(root));
   return folderPath;
 }
 
@@ -270,9 +285,11 @@ export async function updateArticle(root: string, oldPath: string, input: Articl
     throw e;
   }
 
-  await remove(replaced, { recursive: true });
-  if (newPath !== oldPath) await pruneDateFolders(root, oldPath);
-  await refreshIndexHtml(root);
+  await tidyUp(
+    () => remove(replaced, { recursive: true }),
+    async () => newPath !== oldPath && (await pruneDateFolders(root, oldPath)),
+    () => refreshIndexHtml(root),
+  );
   return newPath;
 }
 
@@ -300,8 +317,10 @@ export async function deleteArticle(root: string, id: number, folderPath: string
     await rename(target, dir);
     throw e;
   }
-  await pruneDateFolders(root, folderPath);
-  await refreshIndexHtml(root);
+  await tidyUp(
+    () => pruneDateFolders(root, folderPath),
+    () => refreshIndexHtml(root),
+  );
 }
 
 async function subfolders(dir: string, namePattern: RegExp): Promise<string[]> {
@@ -370,7 +389,7 @@ export async function rebuildIndex(root: string): Promise<RebuildResult> {
   }
   await openIndex(root);
   await invoke("index_fill", { db: url, entries });
-  await refreshIndexHtml(root);
+  await tidyUp(() => refreshIndexHtml(root));
   return { count: entries.length, skipped };
 }
 
