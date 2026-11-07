@@ -309,9 +309,31 @@ async function subfolders(dir: string, namePattern: RegExp): Promise<string[]> {
   return entries.filter((e) => e.isDirectory && namePattern.test(e.name)).map((e) => e.name).sort();
 }
 
+/**
+ * meta.json can be edited by hand, so a rebuild checks what the index needs before the old
+ * index is dropped. Optional text fields that are missing become empty.
+ */
+function checkedMeta(value: unknown): ArticleMeta {
+  const meta = value as Partial<Record<keyof ArticleMeta, unknown>>;
+  const isText = (v: unknown) => typeof v === "string";
+  if (!isText(meta.title) || !(meta.title as string).trim()) throw new Error("title 없음");
+  if (!isText(meta.language) || !meta.language) throw new Error("language 없음");
+  if (!isText(meta.read_at) || !/^\d{4}-\d{2}-\d{2}$/.test(meta.read_at as string)) throw new Error("read_at 형식 오류");
+  if (!Array.isArray(meta.blocks)) throw new Error("blocks 없음");
+  for (const key of ["author", "published_at", "source_url"] as const) {
+    if (meta[key] !== undefined && !isText(meta[key])) throw new Error(`${key} 형식 오류`);
+  }
+  return {
+    ...(meta as ArticleMeta),
+    author: (meta.author as string | undefined) ?? "",
+    published_at: (meta.published_at as string | undefined) ?? "",
+    source_url: (meta.source_url as string | undefined) ?? "",
+  };
+}
+
 export interface RebuildResult {
   count: number;
-  /** Article folders whose meta.json could not be read; their files are left untouched. */
+  /** Article folders whose meta.json could not be read or lacks what the index needs; their files are left untouched. */
   skipped: string[];
 }
 
@@ -329,7 +351,7 @@ export async function rebuildIndex(root: string): Promise<RebuildResult> {
         for (const name of await subfolders(await join(root, year, month, day), /./)) {
           const folderPath = `${year}/${month}/${day}/${name}`;
           try {
-            entries.push(indexEntry(await readArticleMeta(root, folderPath), folderPath));
+            entries.push(indexEntry(checkedMeta(await readArticleMeta(root, folderPath)), folderPath));
           } catch {
             skipped.push(folderPath);
           }
