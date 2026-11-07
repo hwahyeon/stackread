@@ -1,12 +1,50 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { countByLanguage } from "../lib/archive";
 import { addLanguage, languages, removeLanguage } from "../lib/languages";
 import { applyTheme, currentTheme, saveTheme, Theme } from "../lib/settings";
 
-const THEMES: { value: Theme; label: string }[] = [
-  { value: "system", label: "시스템 설정 따르기" },
-  { value: "light", label: "밝게" },
-  { value: "dark", label: "어둡게" },
+const ICON = {
+  width: 18,
+  height: 18,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+} as const;
+
+const THEMES: { value: Theme; label: string; icon: ReactNode }[] = [
+  {
+    value: "light",
+    label: "밝게",
+    icon: (
+      <svg {...ICON}>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </svg>
+    ),
+  },
+  {
+    value: "dark",
+    label: "어둡게",
+    icon: (
+      <svg {...ICON}>
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+      </svg>
+    ),
+  },
+  {
+    value: "system",
+    label: "시스템 설정 따르기",
+    icon: (
+      <svg {...ICON}>
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+    ),
+  },
 ];
 
 interface Props {
@@ -72,6 +110,25 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         <h1>설정</h1>
       </header>
 
+      <h2>화면</h2>
+      <div className="theme-choice" role="radiogroup" aria-label="화면 색">
+        {THEMES.map(({ value, label, icon }) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            aria-label={label}
+            title={label}
+            className={theme === value ? "secondary selected" : "secondary"}
+            onClick={() => chooseTheme(value)}
+          >
+            {icon}
+          </button>
+        ))}
+      </div>
+      {themeError && <p className="message error">{themeError}</p>}
+
       <h2>저장 폴더</h2>
       <div className="root-row">
         <span className="root-path">{root}</span>
@@ -80,23 +137,6 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         </button>
       </div>
       {rootError && <p className="message error">{rootError}</p>}
-
-      <h2>화면</h2>
-      <div className="theme-choice" role="radiogroup" aria-label="화면 색">
-        {THEMES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={theme === value}
-            className={theme === value ? "secondary selected" : "secondary"}
-            onClick={() => chooseTheme(value)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {themeError && <p className="message error">{themeError}</p>}
 
       <h2>언어</h2>
       <ul className="language-list">
