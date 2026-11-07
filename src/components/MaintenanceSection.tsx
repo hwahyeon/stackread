@@ -52,7 +52,7 @@ export function MaintenanceSection({ root, onRebuilt }: Props) {
 
   return (
     <>
-      <h2 className="manage-title">관리</h2>
+      <h2>관리</h2>
       <ul className="manage-list">
         <li>
           <div>

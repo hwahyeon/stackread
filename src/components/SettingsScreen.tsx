@@ -140,6 +140,8 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
       </div>
       {rootError && <p className="message error">{rootError}</p>}
 
+      <MaintenanceSection root={root} onRebuilt={() => setCountsKey((k) => k + 1)} />
+
       <h2>기사 언어</h2>
       <ul className="language-list">
         {list.map((language) => {
@@ -179,8 +181,6 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         이름은 화면에 표시되고, 코드는 기사에 언어 정보로 저장됩니다. 저장한 기사가 있는 언어는 삭제할 수 없습니다.
       </p>
       {error && <p className="message error">{error}</p>}
-
-      <MaintenanceSection root={root} onRebuilt={() => setCountsKey((k) => k + 1)} />
     </main>
   );
 }
