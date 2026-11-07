@@ -240,7 +240,12 @@ button.secondary {
 
 .block-gap.open { padding: 0.35rem 0; }
 
-.block-add { margin-top: 0.6rem; text-align: center; }
+.block-add {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
 
 .add-menu {
   display: inline-flex;

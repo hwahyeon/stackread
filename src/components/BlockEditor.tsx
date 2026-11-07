@@ -135,13 +135,12 @@ export function BlockEditor({ root, blocks, onChange }: Props) {
         </SortableContext>
       </DndContext>
       <div className="block-add">
-        {menuAt === blocks.length ? (
-          <AddMenu onPick={(type) => add(blocks.length, type)} />
-        ) : (
-          <button type="button" className="secondary" onClick={() => setMenuAt(blocks.length)}>
-            + 블록 추가
-          </button>
-        )}
+        <button type="button" className="secondary" onClick={() => add(blocks.length, "text")}>
+          + 글 추가
+        </button>
+        <button type="button" className="secondary" onClick={() => add(blocks.length, "image")}>
+          + 사진 추가
+        </button>
       </div>
     </div>
   );
