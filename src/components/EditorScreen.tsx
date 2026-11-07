@@ -83,7 +83,7 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, onLeave }: Props
     try {
       const meta = toMeta(fields, blocks);
       const folder = editing
-        ? await updateArticle(root, editing.id, editing.folderPath, meta)
+        ? await updateArticle(root, editing.folderPath, meta)
         : await saveArticle(root, meta);
       await discardDraft(root);
       onSaved(folder);

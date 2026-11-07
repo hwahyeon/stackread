@@ -198,10 +198,22 @@ export async function saveArticle(root: string, input: ArticleMeta): Promise<str
 }
 
 /**
+ * The id is looked up by folder rather than taken from the caller: an edit draft can outlive
+ * a rebuild of the index, which numbers the articles afresh.
+ */
+async function indexIdOf(root: string, folderPath: string): Promise<number> {
+  const { db } = await openIndex(root);
+  const rows = await db.select<{ id: number }[]>("SELECT id FROM articles WHERE folder_path = $1", [folderPath]);
+  if (rows.length === 0) throw new Error(`색인에서 기사를 찾지 못했습니다: ${folderPath}. 색인을 다시 만든 뒤 저장해 주세요`);
+  return rows[0].id;
+}
+
+/**
  * Replaces an article without risking the original: the new version is finished in a
  * staging folder, swapped in, and the old one is kept until the index has accepted the change.
  */
-export async function updateArticle(root: string, id: number, oldPath: string, input: ArticleMeta): Promise<string> {
+export async function updateArticle(root: string, oldPath: string, input: ArticleMeta): Promise<string> {
+  const id = await indexIdOf(root, oldPath);
   const work = await join(root, WORK_FOLDER);
   const stamp = crypto.randomUUID();
   const staging = await join(work, `staging-${stamp}`);
