@@ -138,7 +138,7 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
       </div>
       {rootError && <p className="message error">{rootError}</p>}
 
-      <h2>언어</h2>
+      <h2>기사 언어</h2>
       <ul className="language-list">
         {list.map((language) => {
           const count = counts?.get(language.code) ?? 0;
