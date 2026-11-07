@@ -1,52 +1,7 @@
-import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { countByLanguage } from "../lib/archive";
 import { addLanguage, languages, removeLanguage } from "../lib/languages";
 import { MaintenanceSection } from "./MaintenanceSection";
-import { applyTheme, currentTheme, saveTheme, Theme } from "../lib/settings";
-
-const ICON = {
-  width: 18,
-  height: 18,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  "aria-hidden": true,
-} as const;
-
-const THEMES: { value: Theme; label: string; icon: ReactNode }[] = [
-  {
-    value: "light",
-    label: "밝게",
-    icon: (
-      <svg {...ICON}>
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-      </svg>
-    ),
-  },
-  {
-    value: "dark",
-    label: "어둡게",
-    icon: (
-      <svg {...ICON}>
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-      </svg>
-    ),
-  },
-  {
-    value: "system",
-    label: "시스템 설정 따르기",
-    icon: (
-      <svg {...ICON}>
-        <rect x="2" y="3" width="20" height="14" rx="2" />
-        <path d="M8 21h8M12 17v4" />
-      </svg>
-    ),
-  },
-];
 
 interface Props {
   root: string;
@@ -57,19 +12,6 @@ interface Props {
 
 export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootError }: Props) {
   const [list, setList] = useState(languages);
-  const [theme, setTheme] = useState<Theme>(currentTheme);
-  const [themeError, setThemeError] = useState<string | null>(null);
-
-  const chooseTheme = async (next: Theme) => {
-    applyTheme(next);
-    setTheme(next);
-    try {
-      await saveTheme(next);
-      setThemeError(null);
-    } catch (e) {
-      setThemeError(`화면 설정을 저장하지 못했습니다. 다음에 켤 때는 이전 설정으로 돌아갑니다: ${e}`);
-    }
-  };
   const [counts, setCounts] = useState<Map<string, number> | null>(null);
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("");
@@ -111,25 +53,6 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
       <header>
         <h1>설정</h1>
       </header>
-
-      <h2>화면</h2>
-      <div className="theme-choice" role="radiogroup" aria-label="화면 색">
-        {THEMES.map(({ value, label, icon }) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={theme === value}
-            aria-label={label}
-            title={label}
-            className={theme === value ? "secondary selected" : "secondary"}
-            onClick={() => chooseTheme(value)}
-          >
-            {icon}
-          </button>
-        ))}
-      </div>
-      {themeError && <p className="message error">{themeError}</p>}
 
       <h2>저장 폴더</h2>
       <div className="root-row">

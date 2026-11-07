@@ -1,3 +1,5 @@
+import { ThemeSwitch } from "./ThemeSwitch";
+
 export type NavTarget = "list" | "calendar" | "settings" | "new";
 
 const LINKS: { target: Exclude<NavTarget, "new">; label: string }[] = [
@@ -35,6 +37,7 @@ export function NavBar({ active, canGoBack, onBack, onGo }: Props) {
           </button>
         ))}
       </div>
+      <ThemeSwitch />
       <button type="button" className="nav-new" disabled={active === "new"} onClick={() => onGo("new")}>
         + 새 기사
       </button>

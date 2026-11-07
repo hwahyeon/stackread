@@ -405,29 +405,29 @@ button.secondary {
 .settings .message { margin-top: 0.75rem; }
 
 .theme-choice {
-  display: inline-flex;
-  gap: 0.25rem;
-  margin-bottom: 1.5rem;
-  padding: 0.25rem;
+  display: flex;
+  gap: 2px;
+  margin-right: 0.5rem;
+  padding: 2px;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
-.theme-choice button {
+.navbar .theme-choice button {
   display: grid;
   place-items: center;
-  padding: 0.4rem 0.7rem;
+  padding: 0.3rem 0.45rem;
   border-color: transparent;
   color: var(--muted);
 }
 
-.theme-choice button.selected { background: var(--bg); }
-
-.theme-choice button.selected {
+.navbar .theme-choice button.selected {
   border-color: var(--accent);
   color: var(--accent);
-  font-weight: 600;
+  background: var(--bg);
 }
+
+.theme-choice svg { width: 16px; height: 16px; }
 
 .root-row {
   display: flex;
