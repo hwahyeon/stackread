@@ -116,6 +116,8 @@ export default function App() {
     setNav(HOME);
     setPrompt(null);
     clearLanguageFilters();
+    // Tags and search terms belong to the old folder's articles too.
+    setFilter(EMPTY_FILTER);
     let current = true;
     loadLanguages(root)
       .catch((e) => setError(`언어 목록을 읽지 못해 기본 목록을 사용합니다: ${e}`))
