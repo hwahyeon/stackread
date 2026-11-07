@@ -398,6 +398,33 @@ export async function countTrash(root: string): Promise<number> {
   return (await exists(trash)) ? (await readDir(trash)).length : 0;
 }
 
+export interface TrashItem {
+  /** The folder's name inside the trash. */
+  folder: string;
+  /** Empty when meta.json could not be read. */
+  title: string;
+  language: string;
+  read_at: string;
+}
+
+/** What is in the trash, newest read date first. A folder with an unreadable meta.json is still listed. */
+export async function listTrash(root: string): Promise<TrashItem[]> {
+  const trash = await join(root, TRASH_FOLDER);
+  if (!(await exists(trash))) return [];
+  const folders = (await readDir(trash)).filter((e) => e.isDirectory).map((e) => e.name);
+  const items = await Promise.all(
+    folders.map(async (folder): Promise<TrashItem> => {
+      try {
+        const meta = JSON.parse(await readTextFile(await join(trash, folder, "meta.json"))) as Partial<ArticleMeta>;
+        return { folder, title: meta.title ?? "", language: meta.language ?? "", read_at: meta.read_at ?? "" };
+      } catch {
+        return { folder, title: "", language: "", read_at: "" };
+      }
+    }),
+  );
+  return items.sort((a, b) => b.folder.localeCompare(a.folder));
+}
+
 export async function emptyTrash(root: string): Promise<void> {
   const trash = await join(root, TRASH_FOLDER);
   if (await exists(trash)) await remove(trash, { recursive: true });
