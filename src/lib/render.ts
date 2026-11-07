@@ -5,8 +5,10 @@ import { ArticleMeta } from "./types";
 const ARTICLE_CSS = `
 :root { color-scheme: light dark; --fg: #222; --muted: #6b6b6b; --bg: #fdfcf9; --rule: #dedbd2; }
 @media (prefers-color-scheme: dark) {
-  :root { --fg: #e4e2dc; --muted: #a09d95; --bg: #1c1b19; --rule: #3a3833; }
+  :root:not([data-theme="light"]) { --fg: #e4e2dc; --muted: #a09d95; --bg: #1c1b19; --rule: #3a3833; }
 }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; --fg: #e4e2dc; --muted: #a09d95; --bg: #1c1b19; --rule: #3a3833; }
 body { margin: 0; background: var(--bg); color: var(--fg); }
 main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; font: 1.15rem/1.75 Georgia, "Malgun Gothic", serif; }
 h1 { font-size: 2rem; line-height: 1.25; margin: 0 0 .75rem; overflow-wrap: anywhere; }

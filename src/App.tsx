@@ -8,7 +8,7 @@ import { SettingsScreen } from "./components/SettingsScreen";
 import { ArticleFilter, ArticleRow, articleDir, readArticleMeta } from "./lib/archive";
 import { createEditDraft, discardDraft, Draft, loadDraft } from "./lib/draft";
 import { loadLanguages } from "./lib/languages";
-import { chooseRoot, loadRoot } from "./lib/settings";
+import { applyTheme, chooseRoot, loadRoot, loadTheme } from "./lib/settings";
 import "./App.css";
 
 type View =
@@ -94,6 +94,9 @@ export default function App() {
   };
 
   useEffect(() => {
+    loadTheme()
+      .then(applyTheme)
+      .catch((e) => console.warn("theme setting unreadable", e));
     loadRoot()
       .then(setRoot)
       .catch((e) => {

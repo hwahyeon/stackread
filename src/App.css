@@ -1,38 +1,24 @@
+/* light-dark() picks by color-scheme: the system's, unless the theme setting fixes one. */
 :root {
   color-scheme: light dark;
-  --fg: #222;
-  --muted: #6b6b6b;
-  --bg: #fdfcf9;
-  --surface: #fff;
-  --line: #d9d6cd;
-  --accent: #2f5d50;
-  --accent-fg: #fff;
-  --error: #b3261e;
-  --heat-0: #ebe8df;
-  --heat-1: #b7d3c8;
-  --heat-2: #7fae9e;
-  --heat-3: #4f8675;
-  --heat-4: #2f5d50;
+  --fg: light-dark(#222, #e4e2dc);
+  --muted: light-dark(#6b6b6b, #a09d95);
+  --bg: light-dark(#fdfcf9, #1c1b19);
+  --surface: light-dark(#fff, #262522);
+  --line: light-dark(#d9d6cd, #3f3d38);
+  --accent: light-dark(#2f5d50, #7fb8a6);
+  --accent-fg: light-dark(#fff, #14211d);
+  --error: light-dark(#b3261e, #f2968f);
+  --heat-0: light-dark(#ebe8df, #2e2c28);
+  --heat-1: light-dark(#b7d3c8, #33524a);
+  --heat-2: light-dark(#7fae9e, #4a7a6a);
+  --heat-3: light-dark(#4f8675, #659b89);
+  --heat-4: light-dark(#2f5d50, #8fcab7);
   font: 15px/1.5 system-ui, "Malgun Gothic", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fg: #e4e2dc;
-    --muted: #a09d95;
-    --bg: #1c1b19;
-    --surface: #262522;
-    --line: #3f3d38;
-    --accent: #7fb8a6;
-    --accent-fg: #14211d;
-    --error: #f2968f;
-    --heat-0: #2e2c28;
-    --heat-1: #33524a;
-    --heat-2: #4a7a6a;
-    --heat-3: #659b89;
-    --heat-4: #8fcab7;
-  }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -417,6 +403,18 @@ button.secondary {
 }
 
 .settings .message { margin-top: 0.75rem; }
+
+.theme-choice {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.theme-choice button.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
 
 .root-row {
   display: flex;

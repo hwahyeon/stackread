@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { countByLanguage } from "../lib/archive";
 import { addLanguage, languages, removeLanguage } from "../lib/languages";
+import { applyTheme, currentTheme, saveTheme, Theme } from "../lib/settings";
+
+const THEMES: { value: Theme; label: string }[] = [
+  { value: "system", label: "시스템 설정 따르기" },
+  { value: "light", label: "밝게" },
+  { value: "dark", label: "어둡게" },
+];
 
 interface Props {
   root: string;
@@ -11,6 +18,19 @@ interface Props {
 
 export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootError }: Props) {
   const [list, setList] = useState(languages);
+  const [theme, setTheme] = useState<Theme>(currentTheme);
+  const [themeError, setThemeError] = useState<string | null>(null);
+
+  const chooseTheme = async (next: Theme) => {
+    applyTheme(next);
+    setTheme(next);
+    try {
+      await saveTheme(next);
+      setThemeError(null);
+    } catch (e) {
+      setThemeError(`화면 설정을 저장하지 못했습니다. 다음에 켤 때는 이전 설정으로 돌아갑니다: ${e}`);
+    }
+  };
   const [counts, setCounts] = useState<Map<string, number> | null>(null);
   const [code, setCode] = useState("");
   const [label, setLabel] = useState("");
@@ -60,6 +80,23 @@ export function SettingsScreen({ root, onLanguageRemoved, onChangeRoot, rootErro
         </button>
       </div>
       {rootError && <p className="message error">{rootError}</p>}
+
+      <h2>화면</h2>
+      <div className="theme-choice" role="radiogroup" aria-label="화면 색">
+        {THEMES.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            className={theme === value ? "secondary selected" : "secondary"}
+            onClick={() => chooseTheme(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {themeError && <p className="message error">{themeError}</p>}
 
       <h2>언어</h2>
       <ul className="language-list">

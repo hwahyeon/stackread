@@ -15,5 +15,8 @@ export function ArticleFrame({ html }: { html: string }) {
       if (/^https?:/i.test(link.href)) openUrl(link.href).catch(() => {});
     });
   };
-  return <iframe className="article-frame" title="기사" sandbox="allow-same-origin" srcDoc={html} onLoad={onLoad} />;
+  // The frame can't see the app's theme setting, so a fixed theme is written into its page.
+  const theme = document.documentElement.dataset.theme;
+  const themed = theme ? html.replace(/<html/i, `<html data-theme="${theme}"`) : html;
+  return <iframe className="article-frame" title="기사" sandbox="allow-same-origin" srcDoc={themed} onLoad={onLoad} />;
 }
