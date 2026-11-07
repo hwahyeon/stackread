@@ -669,6 +669,9 @@ button.secondary {
   gap: 1rem;
 }
 
+.editor .actions { justify-content: flex-end; }
+.editor .actions .message { margin-right: auto; }
+
 .message {
   margin: 0;
   font-size: 0.9rem;

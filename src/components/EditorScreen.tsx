@@ -151,13 +151,13 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, leaveRef }: Prop
           <BlockEditor root={root} blocks={blocks} onChange={changeBlocks} />
         </div>
         <div className="wide actions">
-          <button type="submit" disabled={saving}>
-            {saving ? "저장 중..." : "저장"}
-          </button>
+          {error && <p className="message error">{error}</p>}
           <button type="button" className="secondary" onClick={() => setPreviewing(true)}>
             미리보기
           </button>
-          {error && <p className="message error">{error}</p>}
+          <button type="submit" disabled={saving}>
+            {saving ? "저장 중..." : "저장"}
+          </button>
         </div>
       </form>
       {previewing && <Preview root={root} meta={previewMeta} onClose={closePreview} />}
