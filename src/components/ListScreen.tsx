@@ -14,13 +14,10 @@ interface Props {
   error: string | null;
   onFilterChange: (filter: ArticleFilter) => void;
   onOpen: (row: ArticleRow) => void;
-  onNew: () => void;
-  onCalendar: () => void;
-  onSettings: () => void;
   onChangeRoot: () => void;
 }
 
-export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onNew, onCalendar, onSettings, onChangeRoot }: Props) {
+export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onChangeRoot }: Props) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
@@ -87,18 +84,9 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
   return (
     <main className="list">
       <header>
-        <h1>Stackread</h1>
+        <h1>기사 목록</h1>
         <button type="button" className="link" onClick={onChangeRoot} title={root}>
           저장 폴더: {root}
-        </button>
-        <button type="button" className="secondary" onClick={onCalendar}>
-          달력
-        </button>
-        <button type="button" className="secondary" onClick={onSettings}>
-          설정
-        </button>
-        <button type="button" onClick={onNew}>
-          + 새 기사
         </button>
       </header>
 

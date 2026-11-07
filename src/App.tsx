@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarScreen, CalendarState, initialCalendar } from "./components/CalendarScreen";
 import { DetailScreen } from "./components/DetailScreen";
 import { EditorScreen } from "./components/EditorScreen";
 import { EMPTY_FILTER, ListScreen } from "./components/ListScreen";
+import { NavBar, NavTarget } from "./components/NavBar";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { ArticleFilter, ArticleRow, articleDir, readArticleMeta } from "./lib/archive";
 import { createEditDraft, discardDraft, Draft, loadDraft } from "./lib/draft";
@@ -14,19 +15,54 @@ type View =
   | { name: "list" }
   | { name: "calendar" }
   | { name: "settings" }
-  | { name: "editor"; key: string; draft: Draft | null; freshEdit: boolean; back: View }
-  | { name: "detail"; id: number; folderPath: string; back: View };
+  | { name: "editor"; key: string; draft: Draft | null; freshEdit: boolean }
+  | { name: "detail"; id: number; folderPath: string };
 
-const LIST: View = { name: "list" };
-
-function editorView(draft: Draft | null, freshEdit = false, back: View = LIST): View {
-  return { name: "editor", key: crypto.randomUUID(), draft, freshEdit, back };
+/** The current screen plus the screens "뒤로" returns to, oldest first. */
+interface Nav {
+  view: View;
+  history: View[];
 }
 
-/** Where a recovered draft belongs: an edit goes back to its article, a new one to the list. */
-function viewForDraft(draft: Draft): View {
-  const back: View = draft.editing ? { name: "detail", ...draft.editing, back: LIST } : LIST;
-  return editorView(draft, false, back);
+const LIST: View = { name: "list" };
+const HOME: Nav = { view: LIST, history: [] };
+const MAX_HISTORY = 50;
+
+function editorView(draft: Draft | null, freshEdit = false): View {
+  return { name: "editor", key: crypto.randomUUID(), draft, freshEdit };
+}
+
+function sameScreen(a: View, b: View): boolean {
+  if (a.name === "detail" && b.name === "detail") return a.id === b.id;
+  return a.name === b.name;
+}
+
+/** Shows view, dropping history entries that would make "뒤로" land on the same screen. */
+function settle(view: View, history: View[]): Nav {
+  const kept = [...history];
+  while (kept.length > 0 && sameScreen(kept[kept.length - 1], view)) kept.pop();
+  return { view, history: kept.slice(-MAX_HISTORY) };
+}
+
+/** History below the next screen; an editor is never kept, since its work lives in the draft. */
+function below(cur: Nav): View[] {
+  return cur.view.name === "editor" ? cur.history : [...cur.history, cur.view];
+}
+
+/** Opens a recovered draft; an edit gets its article underneath so "뒤로" lands there. */
+function resumed(cur: Nav, draft: Draft): Nav {
+  const history = below(cur);
+  if (draft.editing) {
+    const detail: View = { name: "detail", ...draft.editing };
+    const last = history[history.length - 1];
+    if (!last || !sameScreen(last, detail)) history.push(detail);
+  }
+  return settle(editorView(draft), history);
+}
+
+function activeTarget(view: View): NavTarget | null {
+  if (view.name === "editor") return view.draft?.editing ? null : "new";
+  return view.name === "detail" ? null : view.name;
 }
 
 /** A found draft asks first; afterDiscard is what "버리기" continues with. */
@@ -39,7 +75,10 @@ export default function App() {
   const [root, setRoot] = useState<string | null | undefined>(undefined);
   // The root whose language list is loaded; screens wait for it so they never show another root's list.
   const [languagesRoot, setLanguagesRoot] = useState<string | null>(null);
-  const [view, setView] = useState<View>(LIST);
+  const [nav, setNav] = useState<Nav>(HOME);
+  const view = nav.view;
+  // Set by the open editor: keeps its work before the app moves elsewhere; false means stay.
+  const editorLeave = useRef<(() => Promise<boolean>) | null>(null);
   const [prompt, setPrompt] = useState<DraftPrompt | null>(null);
   const [filter, setFilter] = useState<ArticleFilter>(EMPTY_FILTER);
   const [calendar, setCalendar] = useState<CalendarState>(initialCalendar);
@@ -65,7 +104,7 @@ export default function App() {
 
   useEffect(() => {
     if (!root) return;
-    setView(LIST);
+    setNav(HOME);
     setPrompt(null);
     clearLanguageFilters();
     let current = true;
@@ -73,7 +112,7 @@ export default function App() {
       .catch((e) => setError(`언어 목록을 읽지 못해 기본 목록을 사용합니다: ${e}`))
       .finally(() => current && setLanguagesRoot(root));
     loadDraft(root)
-      .then((draft) => draft && setPrompt({ draft, afterDiscard: () => setView(LIST) }))
+      .then((draft) => draft && setPrompt({ draft, afterDiscard: () => setNav(HOME) }))
       .catch((e) => setError(`임시 저장본을 읽지 못했습니다: ${e}`));
     return () => {
       current = false;
@@ -93,11 +132,15 @@ export default function App() {
     }
   };
 
+  const clearMessages = () => {
+    setNotice(null);
+    setError(null);
+  };
+
   /** Runs next unless a draft is waiting, in which case the user decides first. */
   const unlessDraftWaits = async (next: () => void | Promise<void>) => {
     if (!root) return;
-    setNotice(null);
-    setError(null);
+    clearMessages();
     try {
       const draft = await loadDraft(root);
       if (draft) setPrompt({ draft, afterDiscard: next });
@@ -107,20 +150,65 @@ export default function App() {
     }
   };
 
+  const leaveEditor = async () => view.name !== "editor" || !editorLeave.current || editorLeave.current();
+
+  const go = async (next: View) => {
+    if (!(await leaveEditor())) return;
+    clearMessages();
+    setNav((cur) => settle(next, below(cur)));
+  };
+
+  const goBack = async () => {
+    if (prompt || nav.history.length === 0 || !(await leaveEditor())) return;
+    clearMessages();
+    setNav((cur) => {
+      const last = cur.history[cur.history.length - 1];
+      return last ? settle(last, cur.history.slice(0, -1)) : cur;
+    });
+  };
+
+  const goTo = (target: NavTarget) => {
+    if (target === "new") {
+      if (view.name !== "editor") unlessDraftWaits(() => setNav((cur) => settle(editorView(null), below(cur))));
+      return;
+    }
+    go({ name: target });
+  };
+
+  // Alt+← and the mouse's back button work like the "←" button.
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBackRef.current();
+      }
+    };
+    const onMouse = (e: MouseEvent) => {
+      if (e.button === 3) {
+        e.preventDefault();
+        goBackRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
+  }, []);
+
   const beginEdit = async (detail: Extract<View, { name: "detail" }>) => {
     if (!root) return;
     const { id, folderPath } = detail;
     const meta = await readArticleMeta(root, folderPath);
     const dir = await articleDir(root, folderPath);
     const draft = await createEditDraft(root, dir, meta, { id, folderPath });
-    setView(editorView(draft, true, detail));
+    setNav((cur) => settle(editorView(draft, true), below(cur)));
   };
 
-  const openArticle = (row: ArticleRow, back: View) => {
-    setNotice(null);
-    setError(null);
-    setView({ name: "detail", id: row.id, folderPath: row.folder_path, back });
-  };
+  const openArticle = (row: ArticleRow) => go({ name: "detail", id: row.id, folderPath: row.folder_path });
 
   const discardPrompted = async () => {
     if (!root || !prompt) return;
@@ -157,7 +245,8 @@ export default function App() {
         <div className="actions">
           <button
             onClick={() => {
-              setView(viewForDraft(prompt.draft));
+              const draft = prompt.draft;
+              setNav((cur) => resumed(cur, draft));
               setPrompt(null);
             }}
           >
@@ -172,84 +261,74 @@ export default function App() {
     );
   }
 
-  if (view.name === "editor") {
-    const editing = view.draft?.editing;
-    return (
-      <EditorScreen
-        key={view.key}
-        root={root}
-        draft={view.draft}
-        freshEdit={view.freshEdit}
-        onSaved={(folder) => {
-          if (editing) {
-            const back = view.back.name === "detail" ? view.back.back : LIST;
-            setView({ name: "detail", id: editing.id, folderPath: folder, back });
-          } else {
-            setNotice(`저장했습니다: ${folder}`);
-            setView(LIST);
-          }
-        }}
-        onLeave={() => setView(view.back)}
-      />
-    );
-  }
-
-  if (view.name === "detail") {
-    const { id, folderPath } = view;
-    return (
-      <DetailScreen
-        key={folderPath}
-        root={root}
-        id={id}
-        folderPath={folderPath}
-        backLabel={view.back.name === "calendar" ? "달력" : "목록"}
-        onBack={() => setView(view.back)}
-        actionError={error}
-        onEdit={() => unlessDraftWaits(() => beginEdit(view))}
-        onDeleted={() => {
-          setNotice("삭제했습니다. 휴지통 폴더에서 되살릴 수 있습니다.");
-          setView(LIST);
-        }}
-      />
-    );
-  }
-
-  if (view.name === "settings") {
-    return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} onBack={() => setView(LIST)} />;
-  }
-
-  if (view.name === "calendar") {
-    return (
-      <CalendarScreen
-        root={root}
-        state={calendar}
-        onChange={setCalendar}
-        onOpen={(row) => openArticle(row, view)}
-        onBack={() => setView(LIST)}
-      />
-    );
-  }
-
   return (
-    <ListScreen
-      root={root}
-      filter={filter}
-      notice={notice}
-      error={error}
-      onFilterChange={setFilter}
-      onOpen={(row) => openArticle(row, LIST)}
-      onNew={() => unlessDraftWaits(() => setView(editorView(null)))}
-      onCalendar={() => {
-        setNotice(null);
-        setError(null);
-        setView({ name: "calendar" });
-      }}
-      onSettings={() => {
-        setNotice(null);
-        setError(null);
-        setView({ name: "settings" });
-      }}
-      onChangeRoot={pickRoot}
-    />
+    <div className="app">
+      <NavBar active={activeTarget(view)} canGoBack={nav.history.length > 0} onBack={goBack} onGo={goTo} />
+      <div className="app-body">{screen(root)}</div>
+    </div>
   );
+
+  function screen(root: string) {
+    if (view.name === "editor") {
+      const editing = view.draft?.editing;
+      return (
+        <EditorScreen
+          key={view.key}
+          root={root}
+          draft={view.draft}
+          freshEdit={view.freshEdit}
+          leaveRef={editorLeave}
+          onSaved={(folder) => {
+            if (editing) {
+              // The folder may have moved; older history entries for this article follow it.
+              const moved = (v: View): View =>
+                v.name === "detail" && v.id === editing.id ? { ...v, folderPath: folder } : v;
+              setNav((cur) => settle({ name: "detail", id: editing.id, folderPath: folder }, cur.history.map(moved)));
+            } else {
+              setNav((cur) => settle(LIST, cur.history));
+              setNotice(`저장했습니다: ${folder}`);
+            }
+          }}
+        />
+      );
+    }
+
+    if (view.name === "detail") {
+      const { id, folderPath } = view;
+      return (
+        <DetailScreen
+          key={folderPath}
+          root={root}
+          id={id}
+          folderPath={folderPath}
+          actionError={error}
+          onEdit={() => unlessDraftWaits(() => beginEdit(view))}
+          onDeleted={() => {
+            setNav((cur) => settle(LIST, cur.history.filter((v) => !(v.name === "detail" && v.id === id))));
+            setNotice("삭제했습니다. 휴지통 폴더에서 되살릴 수 있습니다.");
+          }}
+        />
+      );
+    }
+
+    if (view.name === "settings") {
+      return <SettingsScreen root={root} onLanguageRemoved={clearLanguageFilters} />;
+    }
+
+    if (view.name === "calendar") {
+      return <CalendarScreen root={root} state={calendar} onChange={setCalendar} onOpen={openArticle} />;
+    }
+
+    return (
+      <ListScreen
+        root={root}
+        filter={filter}
+        notice={notice}
+        error={error}
+        onFilterChange={setFilter}
+        onOpen={openArticle}
+        onChangeRoot={pickRoot}
+      />
+    );
+  }
 }

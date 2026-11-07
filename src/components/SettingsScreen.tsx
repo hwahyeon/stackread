@@ -5,10 +5,9 @@ import { addLanguage, languages, removeLanguage } from "../lib/languages";
 interface Props {
   root: string;
   onLanguageRemoved: (code: string) => void;
-  onBack: () => void;
 }
 
-export function SettingsScreen({ root, onLanguageRemoved, onBack }: Props) {
+export function SettingsScreen({ root, onLanguageRemoved }: Props) {
   const [list, setList] = useState(languages);
   const [counts, setCounts] = useState<Map<string, number> | null>(null);
   const [code, setCode] = useState("");
@@ -49,9 +48,6 @@ export function SettingsScreen({ root, onLanguageRemoved, onBack }: Props) {
     <main className="list settings">
       <header>
         <h1>설정</h1>
-        <button type="button" className="secondary" onClick={onBack}>
-          ← 목록
-        </button>
       </header>
 
       <h2>언어</h2>

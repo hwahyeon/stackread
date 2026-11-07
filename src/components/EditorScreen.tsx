@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, MutableRefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { prepareBlocks, saveArticle, updateArticle } from "../lib/archive";
 import { today } from "../lib/dates";
 import { discardDraft, Draft, DraftFields, saveDraft } from "../lib/draft";
@@ -31,10 +31,11 @@ interface Props {
   /** True when an edit was just opened, so its draft holds nothing the user wrote yet. */
   freshEdit: boolean;
   onSaved: (folder: string) => void;
-  onLeave: () => void;
+  /** Filled with this editor's leave step, which the app runs before showing another screen. */
+  leaveRef: MutableRefObject<(() => Promise<boolean>) | null>;
 }
 
-export function EditorScreen({ root, draft, freshEdit, onSaved, onLeave }: Props) {
+export function EditorScreen({ root, draft, freshEdit, onSaved, leaveRef }: Props) {
   const editing = draft?.editing;
   const [fields, setFields] = useState<DraftFields>(() => draft?.fields ?? emptyFields());
   const [blocks, setBlocks] = useState<Block[]>(() => draft?.blocks ?? [newBlock("text")]);
@@ -66,11 +67,20 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, onLeave }: Props
     try {
       if (dirty) await saveDraft(root, { fields, blocks, editing });
       else if (freshEdit) await discardDraft(root);
-      onLeave();
+      return true;
     } catch (e) {
       setError(`임시 저장에 실패했습니다: ${e}`);
+      return false;
     }
   };
+  // While saving, stay: the save discards the draft, and leaving would write it back.
+  const leaveStep = saving ? async () => false : leave;
+  useEffect(() => {
+    leaveRef.current = leaveStep;
+    return () => {
+      leaveRef.current = null;
+    };
+  });
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -100,9 +110,6 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, onLeave }: Props
     <main className="editor">
       <header>
         <h1>{editing ? "기사 수정" : "새 기사"}</h1>
-        <button type="button" className="secondary" onClick={leave}>
-          {editing ? "← 돌아가기" : "← 목록"}
-        </button>
       </header>
       <form onSubmit={submit}>
         <label className="wide">

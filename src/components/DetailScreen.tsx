@@ -12,13 +12,11 @@ interface Props {
   id: number;
   folderPath: string;
   actionError: string | null;
-  backLabel: string;
-  onBack: () => void;
   onEdit: () => void;
   onDeleted: () => void;
 }
 
-export function DetailScreen({ root, id, folderPath, actionError, backLabel, onBack, onEdit, onDeleted }: Props) {
+export function DetailScreen({ root, id, folderPath, actionError, onEdit, onDeleted }: Props) {
   const [html, setHtml] = useState<string | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? actionError;
@@ -67,9 +65,6 @@ export function DetailScreen({ root, id, folderPath, actionError, backLabel, onB
   return (
     <main className="detail">
       <div className="detail-bar">
-        <button type="button" className="secondary" onClick={onBack}>
-          ← {backLabel}
-        </button>
         <span className="detail-actions">
           <button type="button" className="secondary" onClick={openInBrowser}>
             브라우저로 열기

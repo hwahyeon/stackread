@@ -137,10 +137,9 @@ interface Props {
   state: CalendarState;
   onChange: (state: CalendarState) => void;
   onOpen: (row: ArticleRow) => void;
-  onBack: () => void;
 }
 
-export function CalendarScreen({ root, state, onChange, onOpen, onBack }: Props) {
+export function CalendarScreen({ root, state, onChange, onOpen }: Props) {
   const { month, selected, language } = state;
   const year = Number(month.slice(0, 4));
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
@@ -182,9 +181,6 @@ export function CalendarScreen({ root, state, onChange, onOpen, onBack }: Props)
       <header>
         <h1>달력</h1>
         <LanguageFilter value={language} onChange={(value) => onChange({ ...state, language: value })} />
-        <button type="button" className="secondary" onClick={onBack}>
-          목록
-        </button>
       </header>
 
       {error && <p className="message error">{error}</p>}
