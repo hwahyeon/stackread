@@ -1,16 +1,17 @@
 import { FormEvent, MutableRefObject, useCallback, useEffect, useMemo, useState } from "react";
-import { prepareBlocks, saveArticle, updateArticle } from "../lib/archive";
+import { listTags, prepareBlocks, saveArticle, updateArticle } from "../lib/archive";
 import { today } from "../lib/dates";
 import { discardDraft, Draft, DraftFields, saveDraft } from "../lib/draft";
 import { languageLabel, languages } from "../lib/languages";
-import { ArticleMeta, Block } from "../lib/types";
+import { ArticleMeta, Block, cleanTags } from "../lib/types";
 import { BlockEditor, newBlock } from "./BlockEditor";
 import { Preview } from "./Preview";
+import { TagInput } from "./TagInput";
 
 const AUTOSAVE_DELAY_MS = 1500;
 
 function emptyFields(): DraftFields {
-  return { title: "", author: "", publishedAt: "", sourceUrl: "", language: languages()[0].code, readAt: today() };
+  return { title: "", author: "", publishedAt: "", sourceUrl: "", language: languages()[0].code, readAt: today(), tags: [] };
 }
 
 function toMeta(fields: DraftFields, blocks: Block[]): ArticleMeta {
@@ -21,6 +22,7 @@ function toMeta(fields: DraftFields, blocks: Block[]): ArticleMeta {
     source_url: fields.sourceUrl.trim(),
     language: fields.language,
     read_at: fields.readAt,
+    tags: cleanTags(fields.tags ?? []),
     blocks,
   };
 }
@@ -36,8 +38,9 @@ interface Props {
 }
 
 export function EditorScreen({ root, draft, freshEdit, onSaved, leaveRef }: Props) {
+  const [knownTags, setKnownTags] = useState<string[]>([]);
   const editing = draft?.editing;
-  const [fields, setFields] = useState<DraftFields>(() => draft?.fields ?? emptyFields());
+  const [fields, setFields] = useState<DraftFields>(() => ({ ...emptyFields(), ...draft?.fields }));
   const [blocks, setBlocks] = useState<Block[]>(() => draft?.blocks ?? [newBlock("text")]);
   const [dirty, setDirty] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -52,7 +55,18 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, leaveRef }: Prop
     return () => clearTimeout(timer);
   }, [root, dirty, saving, fields, blocks, editing]);
 
-  const set = (key: keyof DraftFields) => (e: { target: { value: string } }) => {
+  useEffect(() => {
+    listTags(root)
+      .then((rows) => setKnownTags(rows.map((r) => r.tag)))
+      .catch(() => setKnownTags([]));
+  }, [root]);
+
+  const setTags = (tags: string[]) => {
+    setFields((f) => ({ ...f, tags }));
+    setDirty(true);
+  };
+
+  const set = (key: Exclude<keyof DraftFields, "tags">) => (e: { target: { value: string } }) => {
     setFields((f) => ({ ...f, [key]: e.target.value }));
     setDirty(true);
   };
@@ -146,6 +160,10 @@ export function EditorScreen({ root, draft, freshEdit, onSaved, leaveRef }: Prop
           출처 (URL)
           <input type="url" value={fields.sourceUrl} onChange={set("sourceUrl")} />
         </label>
+        <div className="wide">
+          <div className="field-label">태그</div>
+          <TagInput tags={fields.tags ?? []} suggestions={knownTags} onChange={setTags} />
+        </div>
         <div className="wide">
           <div className="field-label">본문</div>
           <BlockEditor root={root} blocks={blocks} onChange={changeBlocks} />

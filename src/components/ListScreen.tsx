@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArticleFilter, ArticlePage, ArticleRow, listArticlePage } from "../lib/archive";
+import { ArticleFilter, ArticlePage, ArticleRow, listArticlePage, listTags } from "../lib/archive";
 import { ArticleRows } from "./ArticleRows";
 import { LanguageFilter } from "./LanguageFilter";
 import { Pager } from "./Pager";
 
 const SEARCH_DELAY_MS = 250;
 
-export const EMPTY_FILTER: ArticleFilter = { query: "", language: "", from: "", to: "", order: "newest" };
+export const EMPTY_FILTER: ArticleFilter = { query: "", language: "", tag: "", from: "", to: "", order: "newest" };
 
 interface Props {
   root: string;
@@ -26,6 +26,13 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
   const [result, setResult] = useState<ArticlePage | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
+  const [tags, setTags] = useState<{ tag: string; count: number }[]>([]);
+
+  useEffect(() => {
+    listTags(root)
+      .then(setTags)
+      .catch(() => setTags([]));
+  }, [root]);
 
   useEffect(() => {
     let current = true;
@@ -60,7 +67,7 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
   const total = result?.total ?? 0;
   const last = Math.max(1, Math.ceil(total / pageSize));
   const first = (page - 1) * pageSize + 1;
-  const filtered = filter.query.trim() !== "" || filter.language !== "" || filter.from !== "" || filter.to !== "";
+  const filtered = filter.query.trim() !== "" || filter.language !== "" || filter.tag !== "" || filter.from !== "" || filter.to !== "";
 
   return (
     <main className="list">
@@ -78,6 +85,17 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
           onChange={set("query")}
         />
         <LanguageFilter value={filter.language} onChange={(language) => onFilterChange({ ...filter, language })} />
+        {(tags.length > 0 || filter.tag) && (
+          <select aria-label="태그" className="tag-filter" value={filter.tag} onChange={set("tag")}>
+            <option value="">전체 태그</option>
+            {tags.map(({ tag, count }) => (
+              <option key={tag} value={tag}>
+                #{tag} ({count})
+              </option>
+            ))}
+            {filter.tag && !tags.some((t) => t.tag === filter.tag) && <option value={filter.tag}>#{filter.tag}</option>}
+          </select>
+        )}
         <input type="date" aria-label="읽은 날짜 시작" value={filter.from} onChange={set("from")} />
         <span className="range-mark">~</span>
         <input type="date" aria-label="읽은 날짜 끝" value={filter.to} onChange={set("to")} />
@@ -98,7 +116,7 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
           <p className="count">
             {total}개{last > 1 && ` 중 ${first}–${first + rows.length - 1}`}
           </p>
-          <ArticleRows rows={rows} onOpen={onOpen} onEdit={onEdit} />
+          <ArticleRows rows={rows} onOpen={onOpen} onEdit={onEdit} onTag={(tag) => onFilterChange({ ...filter, tag })} />
           <Pager page={page} last={last} onPage={showPage} />
         </>
       )}

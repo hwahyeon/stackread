@@ -165,7 +165,7 @@ export function CalendarScreen({ root, state, onChange, onOpen, onEdit }: Props)
     setRows(null);
     if (!selected) return;
     let current = true;
-    listArticles(root, { query: "", language, from: selected, to: selected, order: "newest" })
+    listArticles(root, { query: "", language, tag: "", from: selected, to: selected, order: "newest" })
       .then((result) => current && setRows(result))
       .catch((e) => current && setError(`기사 목록을 읽지 못했습니다: ${e}`));
     return () => {

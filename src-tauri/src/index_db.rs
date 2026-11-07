@@ -26,6 +26,9 @@ const MIGRATIONS: &[&[&str]] = &[&[
     "CREATE INDEX idx_articles_read_at ON articles(read_at)",
     "CREATE INDEX idx_articles_language ON articles(language)",
     "CREATE VIRTUAL TABLE articles_fts USING fts5(title, body, tokenize='trigram')",
+], &[
+    // A JSON array of strings; read with json_each.
+    "ALTER TABLE articles ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
 ]];
 
 #[derive(Deserialize)]
@@ -38,6 +41,8 @@ pub struct NewIndexEntry {
     language: String,
     read_at: String,
     folder_path: String,
+    /// A JSON array of strings.
+    tags: String,
     body: String,
 }
 
@@ -84,7 +89,7 @@ pub async fn index_update(
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let affected = sqlx::query(
         "UPDATE articles SET title = ?, author = ?, published_at = ?, source_url = ?,
-           language = ?, read_at = ?, folder_path = ?
+           language = ?, read_at = ?, folder_path = ?, tags = ?
          WHERE id = ?",
     )
     .bind(&entry.title)
@@ -94,6 +99,7 @@ pub async fn index_update(
     .bind(&entry.language)
     .bind(&entry.read_at)
     .bind(&entry.folder_path)
+    .bind(&entry.tags)
     .bind(id)
     .execute(&mut *tx)
     .await
@@ -149,8 +155,8 @@ pub async fn index_fill(
     for entry in &entries {
         let id = sqlx::query(
             "INSERT INTO articles
-               (title, author, published_at, source_url, language, read_at, folder_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+               (title, author, published_at, source_url, language, read_at, folder_path, tags)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&entry.title)
         .bind(&entry.author)
@@ -159,6 +165,7 @@ pub async fn index_fill(
         .bind(&entry.language)
         .bind(&entry.read_at)
         .bind(&entry.folder_path)
+        .bind(&entry.tags)
         .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?
@@ -184,8 +191,8 @@ pub async fn index_insert(
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let id = sqlx::query(
         "INSERT INTO articles
-           (title, author, published_at, source_url, language, read_at, folder_path)
-         VALUES (?, ?, ?, ?, ?, ?, ?)",
+           (title, author, published_at, source_url, language, read_at, folder_path, tags)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&entry.title)
     .bind(&entry.author)
@@ -194,6 +201,7 @@ pub async fn index_insert(
     .bind(&entry.language)
     .bind(&entry.read_at)
     .bind(&entry.folder_path)
+    .bind(&entry.tags)
     .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?

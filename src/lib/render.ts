@@ -45,6 +45,7 @@ export function renderArticleHtml(meta: ArticleMeta, imageSrc: (file: string) =>
     escapeHtml(languageLabel(meta.language)),
   ].filter(Boolean);
   const source = sourceHtml(meta.source_url);
+  const tags = (meta.tags ?? []).map((t) => `#${escapeHtml(t)}`).join(" ");
   const body = meta.blocks
     .map((b) => {
       if (b.type === "text") return b.html;
@@ -63,7 +64,7 @@ export function renderArticleHtml(meta: ArticleMeta, imageSrc: (file: string) =>
 <body>
 <main>
 <h1>${escapeHtml(meta.title)}</h1>
-<div class="meta">${facts.join(" · ")}${source ? `<br>출처 ${source}` : ""}</div>
+<div class="meta">${facts.join(" · ")}${source ? `<br>출처 ${source}` : ""}${tags ? `<br>태그 ${tags}` : ""}</div>
 ${body}
 </main>
 </body>

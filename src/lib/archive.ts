@@ -6,7 +6,7 @@ import { draftFilePath } from "./draft";
 import { folderNameFromTitle } from "./folderName";
 import { IndexRow, renderArticleHtml, renderIndexHtml } from "./render";
 import { sanitizeTextHtml, textHtmlToPlain } from "./textHtml";
-import { ArticleMeta, Block } from "./types";
+import { ArticleMeta, Block, cleanTags } from "./types";
 
 const TRASH_FOLDER = "_trash";
 // Staging and replaced folders live here, so a rebuild of the index never reads them.
@@ -30,11 +30,14 @@ export interface ArticleRow {
   language: string;
   read_at: string;
   folder_path: string;
+  tags: string[];
 }
 
 export interface ArticleFilter {
   query: string;
   language: string;
+  /** A tag, or "" for any. */
+  tag: string;
   from: string;
   to: string;
   order: "newest" | "oldest";
@@ -50,6 +53,7 @@ function filterWhere(filter: ArticleFilter): { clause: string; values: string[] 
   const bind = (value: string) => `$${values.push(value)}`;
 
   if (filter.language) where.push(`language = ${bind(filter.language)}`);
+  if (filter.tag) where.push(`EXISTS (SELECT 1 FROM json_each(articles.tags) WHERE value = ${bind(filter.tag)})`);
   if (filter.from) where.push(`read_at >= ${bind(filter.from)}`);
   if (filter.to) where.push(`read_at <= ${bind(filter.to)}`);
   for (const term of filter.query.split(/\s+/).filter(Boolean)) {
@@ -66,15 +70,37 @@ function filterWhere(filter: ArticleFilter): { clause: string; values: string[] 
 
 function listQuery(filter: ArticleFilter, clause: string): string {
   const direction = filter.order === "oldest" ? "ASC" : "DESC";
-  return `SELECT id, title, COALESCE(author, '') AS author, language, read_at, folder_path FROM articles
+  return `SELECT id, title, COALESCE(author, '') AS author, language, read_at, folder_path, tags FROM articles
      ${clause}
      ORDER BY read_at ${direction}, id ${direction}`;
+}
+
+type StoredRow = Omit<ArticleRow, "tags"> & { tags: string };
+
+function parseRows(rows: StoredRow[]): ArticleRow[] {
+  return rows.map((row) => {
+    let tags: string[] = [];
+    try {
+      tags = JSON.parse(row.tags);
+    } catch {
+      // A damaged value only loses the tags shown on the row.
+    }
+    return { ...row, tags };
+  });
 }
 
 export async function listArticles(root: string, filter: ArticleFilter): Promise<ArticleRow[]> {
   const { db } = await openIndex(root);
   const { clause, values } = filterWhere(filter);
-  return db.select<ArticleRow[]>(listQuery(filter, clause), values);
+  return parseRows(await db.select<StoredRow[]>(listQuery(filter, clause), values));
+}
+
+/** Every tag in use with its article count, by name. */
+export async function listTags(root: string): Promise<{ tag: string; count: number }[]> {
+  const { db } = await openIndex(root);
+  return db.select<{ tag: string; count: number }[]>(
+    "SELECT value AS tag, COUNT(*) AS count FROM articles, json_each(articles.tags) GROUP BY value ORDER BY value",
+  );
 }
 
 export interface ArticlePage {
@@ -89,8 +115,8 @@ export async function listArticlePage(root: string, filter: ArticleFilter, page:
   const { clause, values } = filterWhere(filter);
   const [{ total }] = await db.select<{ total: number }[]>(`SELECT COUNT(*) AS total FROM articles ${clause}`, values);
   const offset = (Math.max(page, 1) - 1) * size;
-  const rows = await db.select<ArticleRow[]>(`${listQuery(filter, clause)} LIMIT ${size} OFFSET ${offset}`, values);
-  return { rows, total };
+  const rows = await db.select<StoredRow[]>(`${listQuery(filter, clause)} LIMIT ${size} OFFSET ${offset}`, values);
+  return { rows: parseRows(rows), total };
 }
 
 /** Articles read per day ("YYYY-MM-DD") in an inclusive range; days without any are absent. */
@@ -173,7 +199,11 @@ async function placeImages(root: string, dir: string, blocks: Block[]): Promise<
 /** Writes article.html, meta.json and images into dir, and returns the saved form. */
 async function writeArticleFiles(root: string, dir: string, input: ArticleMeta): Promise<ArticleMeta> {
   await mkdir(dir, { recursive: true });
-  const meta: ArticleMeta = { ...input, blocks: await placeImages(root, dir, prepareBlocks(input.blocks)) };
+  const meta: ArticleMeta = {
+    ...input,
+    tags: cleanTags(input.tags ?? []),
+    blocks: await placeImages(root, dir, prepareBlocks(input.blocks)),
+  };
   await writeTextFile(await join(dir, "article.html"), renderArticleHtml(meta));
   await writeTextFile(await join(dir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
   return meta;
@@ -188,6 +218,7 @@ function indexEntry(meta: ArticleMeta, folderPath: string) {
     language: meta.language,
     readAt: meta.read_at,
     folderPath,
+    tags: JSON.stringify(cleanTags(meta.tags ?? [])),
     body: plainBody(meta.blocks),
   };
 }
@@ -365,11 +396,13 @@ function checkedMeta(value: unknown): ArticleMeta {
   for (const key of ["author", "published_at", "source_url"] as const) {
     if (meta[key] !== undefined && !isText(meta[key])) throw new Error(`${key} 형식 오류`);
   }
+  if (meta.tags !== undefined && !(Array.isArray(meta.tags) && meta.tags.every(isText))) throw new Error("tags 형식 오류");
   return {
     ...(meta as ArticleMeta),
     author: (meta.author as string | undefined) ?? "",
     published_at: (meta.published_at as string | undefined) ?? "",
     source_url: (meta.source_url as string | undefined) ?? "",
+    tags: cleanTags((meta.tags as string[] | undefined) ?? []),
   };
 }
 

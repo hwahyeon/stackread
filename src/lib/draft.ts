@@ -10,6 +10,8 @@ export interface DraftFields {
   sourceUrl: string;
   language: string;
   readAt: string;
+  /** Missing in drafts written before tags existed. */
+  tags?: string[];
 }
 
 export interface Draft {
@@ -91,6 +93,7 @@ export async function createEditDraft(
       sourceUrl: meta.source_url,
       language: meta.language,
       readAt: meta.read_at,
+      tags: meta.tags ?? [],
     },
     blocks,
     editing,
