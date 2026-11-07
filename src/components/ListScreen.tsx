@@ -14,9 +14,10 @@ interface Props {
   error: string | null;
   onFilterChange: (filter: ArticleFilter) => void;
   onOpen: (row: ArticleRow) => void;
+  onEdit: (row: ArticleRow) => void;
 }
 
-export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen }: Props) {
+export function ListScreen({ root, filter, notice, error: outerError, onFilterChange, onOpen, onEdit }: Props) {
   const [rows, setRows] = useState<ArticleRow[] | null>(null);
   const [ownError, setError] = useState<string | null>(null);
   const error = ownError ?? outerError;
@@ -76,7 +77,7 @@ export function ListScreen({ root, filter, notice, error: outerError, onFilterCh
       {rows && rows.length > 0 && (
         <>
           <p className="count">{rows.length}개</p>
-          <ArticleRows rows={rows} onOpen={onOpen} />
+          <ArticleRows rows={rows} onOpen={onOpen} onEdit={onEdit} />
         </>
       )}
     </main>

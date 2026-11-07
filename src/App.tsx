@@ -211,6 +211,9 @@ export default function App() {
     setNav((cur) => settle(editorView(draft, true), below(cur)));
   };
 
+  const editArticle = (row: ArticleRow) =>
+    unlessDraftWaits(() => beginEdit({ name: "detail", id: row.id, folderPath: row.folder_path }));
+
   const openArticle = (row: ArticleRow) => go({ name: "detail", id: row.id, folderPath: row.folder_path });
 
   const discardPrompted = async () => {
@@ -319,7 +322,7 @@ export default function App() {
     }
 
     if (view.name === "calendar") {
-      return <CalendarScreen root={root} state={calendar} onChange={setCalendar} onOpen={openArticle} />;
+      return <CalendarScreen root={root} state={calendar} onChange={setCalendar} onOpen={openArticle} onEdit={editArticle} />;
     }
 
     return (
@@ -330,6 +333,7 @@ export default function App() {
         error={error}
         onFilterChange={setFilter}
         onOpen={openArticle}
+        onEdit={editArticle}
       />
     );
   }

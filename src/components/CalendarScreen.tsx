@@ -137,9 +137,10 @@ interface Props {
   state: CalendarState;
   onChange: (state: CalendarState) => void;
   onOpen: (row: ArticleRow) => void;
+  onEdit: (row: ArticleRow) => void;
 }
 
-export function CalendarScreen({ root, state, onChange, onOpen }: Props) {
+export function CalendarScreen({ root, state, onChange, onOpen, onEdit }: Props) {
   const { month, selected, language } = state;
   const year = Number(month.slice(0, 4));
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
@@ -233,7 +234,7 @@ export function CalendarScreen({ root, state, onChange, onOpen }: Props) {
             {selected} · {rows.length}개
           </p>
           {rows.length > 0 ? (
-            <ArticleRows rows={rows} onOpen={onOpen} />
+            <ArticleRows rows={rows} onOpen={onOpen} onEdit={onEdit} />
           ) : (
             <p className="empty day-empty">이날 읽은 기사가 없습니다.</p>
           )}
